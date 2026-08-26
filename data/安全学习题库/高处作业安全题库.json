@@ -1,0 +1,3414 @@
+{
+  "version": "2B-2026.08.22-r3",
+  "review_basis": "逐题绑定已启用结构化规则；正确项为对应规则的简明现场做法，解释和证据保留完整规则要求。",
+  "scenes": {
+    "general": {
+      "name": "高处作业综合管理",
+      "minimum_questions": 10
+    },
+    "personal_protection": {
+      "name": "个体防护",
+      "minimum_questions": 10
+    },
+    "edge_work": {
+      "name": "临边作业",
+      "minimum_questions": 10
+    },
+    "opening_work": {
+      "name": "洞口作业",
+      "minimum_questions": 10
+    },
+    "climbing_work": {
+      "name": "攀登作业",
+      "minimum_questions": 10
+    },
+    "suspended_work": {
+      "name": "悬空作业",
+      "minimum_questions": 10
+    },
+    "cross_work": {
+      "name": "交叉作业",
+      "minimum_questions": 10
+    },
+    "scaffold_erection": {
+      "name": "脚手架搭设",
+      "minimum_questions": 10
+    },
+    "scaffold_dismantling": {
+      "name": "脚手架拆除",
+      "minimum_questions": 10
+    },
+    "work_platform": {
+      "name": "操作平台",
+      "minimum_questions": 10
+    },
+    "suspended_basket": {
+      "name": "高处作业吊篮",
+      "minimum_questions": 10
+    },
+    "formwork": {
+      "name": "模板安装与拆除",
+      "minimum_questions": 10
+    },
+    "curtain_wall": {
+      "name": "幕墙及外墙安装",
+      "minimum_questions": 10
+    }
+  },
+  "questions": [
+    {
+      "id": "general-SC-01",
+      "scene": "general",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于高处作业综合管理，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "防护设施分类检查验收合格并留存记录后再作业"
+        },
+        {
+          "key": "B",
+          "text": "安全防护设施尚未验收，先开工并在收工后补验收记录"
+        },
+        {
+          "key": "C",
+          "text": "班前只作口头提醒，不进行安全技术交底和记录"
+        },
+        {
+          "key": "D",
+          "text": "把可能坠落的材料临时堆在临边，未采取固定措施"
+        }
+      ],
+      "answer": "A",
+      "explanation": "防护设施分类检查验收合格并留存记录后再作业",
+      "rule_id": "GZ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-SC-02",
+      "scene": "general",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行高处作业综合管理，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "安全防护设施被临时拆除后，作业结束也不立即恢复"
+        },
+        {
+          "key": "B",
+          "text": "作业前完成安全技术交底并形成记录"
+        },
+        {
+          "key": "C",
+          "text": "把工具放在栏杆上，使用时再随手取用"
+        },
+        {
+          "key": "D",
+          "text": "为方便装卸，把高处作业用物料堆放在人员通道内"
+        }
+      ],
+      "answer": "B",
+      "explanation": "作业前完成安全技术交底并形成记录",
+      "rule_id": "GZ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-SC-03",
+      "scene": "general",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行高处作业综合管理时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把工具放在栏杆上，使用时再随手取用"
+        },
+        {
+          "key": "B",
+          "text": "为方便装卸，把高处作业用物料堆放在人员通道内"
+        },
+        {
+          "key": "C",
+          "text": "警示标志设置在对应部位，夜间增设红灯警示"
+        },
+        {
+          "key": "D",
+          "text": "安全防护设施尚未验收，先开工并在收工后补验收记录"
+        }
+      ],
+      "answer": "C",
+      "explanation": "警示标志设置在对应部位，夜间增设红灯警示",
+      "rule_id": "GZ-006",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-SC-04",
+      "scene": "general",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论高处作业综合管理安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "班前只作口头提醒，不进行安全技术交底和记录"
+        },
+        {
+          "key": "B",
+          "text": "把可能坠落的材料临时堆在临边，未采取固定措施"
+        },
+        {
+          "key": "C",
+          "text": "安全防护设施被临时拆除后，作业结束也不立即恢复"
+        },
+        {
+          "key": "D",
+          "text": "作业前检查工具、电气设施和设备并确认完好"
+        }
+      ],
+      "answer": "D",
+      "explanation": "作业前检查工具、电气设施和设备并确认完好",
+      "rule_id": "GZ-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-SC-05",
+      "scene": "general",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于高处作业综合管理，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "可能坠落的物料及时清除或可靠固定"
+        },
+        {
+          "key": "B",
+          "text": "安全防护设施尚未验收，先开工并在收工后补验收记录"
+        },
+        {
+          "key": "C",
+          "text": "把可能坠落的材料临时堆在临边，未采取固定措施"
+        },
+        {
+          "key": "D",
+          "text": "为方便装卸，把高处作业用物料堆放在人员通道内"
+        }
+      ],
+      "answer": "A",
+      "explanation": "可能坠落的物料及时清除或可靠固定",
+      "rule_id": "GZ-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-SC-06",
+      "scene": "general",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行高处作业综合管理，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "安全防护设施被临时拆除后，作业结束也不立即恢复"
+        },
+        {
+          "key": "B",
+          "text": "物料平稳堆放，不妨碍通行和装卸"
+        },
+        {
+          "key": "C",
+          "text": "班前只作口头提醒，不进行安全技术交底和记录"
+        },
+        {
+          "key": "D",
+          "text": "把工具放在栏杆上，使用时再随手取用"
+        }
+      ],
+      "answer": "B",
+      "explanation": "物料平稳堆放，不妨碍通行和装卸",
+      "rule_id": "GZ-010",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-TF-01",
+      "scene": "general",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（高处作业综合管理）：工具应随手放入工具袋",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "工具应随手放入工具袋",
+      "rule_id": "GZ-011",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-TF-02",
+      "scene": "general",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（高处作业综合管理）：拆下的物料可先堆在临边，等当天收工后再集中清运",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "拆卸下的物料及余料和废料应及时清理运走，不得随意放置或向下丢弃",
+      "rule_id": "GZ-013",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-TF-03",
+      "scene": "general",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（高处作业综合管理）：在雨、霜、雾、雪等天气进行高处作业时，应采取防滑、防冻和防雷措施，并应及时清除作业面上的水、冰、雪、霜",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "在雨、霜、雾、雪等天气进行高处作业时，应采取防滑、防冻和防雷措施，并应及时清除作业面上的水、冰、雪、霜",
+      "rule_id": "GZ-016",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "general-TF-04",
+      "scene": "general",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（高处作业综合管理）：遇到6级强风时，只要系好安全带仍可进行露天悬空作业",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "当遇有6级及以上强风、浓雾、沙尘暴等恶劣气候，不得进行露天攀登与悬空高处作业",
+      "rule_id": "GZ-017",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-SC-01",
+      "scene": "personal_protection",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于个体防护，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "安全帽受到严重冲击但外观无裂纹，继续投入使用"
+        },
+        {
+          "key": "B",
+          "text": "进入施工现场时正确佩戴合格安全帽"
+        },
+        {
+          "key": "C",
+          "text": "用普通工作帽代替安全帽进入施工现场"
+        },
+        {
+          "key": "D",
+          "text": "安全帽下颏带未系紧，帽体可以在头部晃动"
+        }
+      ],
+      "answer": "B",
+      "explanation": "进入施工现场时正确佩戴合格安全帽",
+      "rule_id": "PPE-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-SC-02",
+      "scene": "personal_protection",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行个体防护，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把安全绳挂在可移动栏杆或临时构件上"
+        },
+        {
+          "key": "B",
+          "text": "安全带低挂高用，并让安全绳长度接近可坠落距离"
+        },
+        {
+          "key": "C",
+          "text": "按头围调好帽箍并系紧下颏带"
+        },
+        {
+          "key": "D",
+          "text": "有坠落风险时只使用单腰带式安全带"
+        }
+      ],
+      "answer": "C",
+      "explanation": "按头围调好帽箍并系紧下颏带",
+      "rule_id": "PPE-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-SC-03",
+      "scene": "personal_protection",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行个体防护时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "用普通工作帽代替安全帽进入施工现场"
+        },
+        {
+          "key": "B",
+          "text": "有坠落风险时只使用单腰带式安全带"
+        },
+        {
+          "key": "C",
+          "text": "把安全绳挂在可移动栏杆或临时构件上"
+        },
+        {
+          "key": "D",
+          "text": "安全帽受严重冲击后即使无裂纹也予以更换"
+        }
+      ],
+      "answer": "D",
+      "explanation": "安全帽受严重冲击后即使无裂纹也予以更换",
+      "rule_id": "PPE-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-SC-04",
+      "scene": "personal_protection",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论个体防护安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "有坠落风险时使用全身式坠落悬挂安全带"
+        },
+        {
+          "key": "B",
+          "text": "安全帽下颏带未系紧，帽体可以在头部晃动"
+        },
+        {
+          "key": "C",
+          "text": "安全帽受到严重冲击但外观无裂纹，继续投入使用"
+        },
+        {
+          "key": "D",
+          "text": "安全带低挂高用，并让安全绳长度接近可坠落距离"
+        }
+      ],
+      "answer": "A",
+      "explanation": "有坠落风险时使用全身式坠落悬挂安全带",
+      "rule_id": "PPE-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-SC-05",
+      "scene": "personal_protection",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于个体防护，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把安全绳挂在可移动栏杆或临时构件上"
+        },
+        {
+          "key": "B",
+          "text": "安全带系带连接点设在前胸或后背"
+        },
+        {
+          "key": "C",
+          "text": "用普通工作帽代替安全帽进入施工现场"
+        },
+        {
+          "key": "D",
+          "text": "安全帽受到严重冲击但外观无裂纹，继续投入使用"
+        }
+      ],
+      "answer": "B",
+      "explanation": "安全带系带连接点设在前胸或后背",
+      "rule_id": "PPE-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-SC-06",
+      "scene": "personal_protection",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行个体防护，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "有坠落风险时只使用单腰带式安全带"
+        },
+        {
+          "key": "B",
+          "text": "安全带低挂高用，并让安全绳长度接近可坠落距离"
+        },
+        {
+          "key": "C",
+          "text": "未展开缓冲器的坠落悬挂安全绳不超过2m"
+        },
+        {
+          "key": "D",
+          "text": "安全帽下颏带未系紧，帽体可以在头部晃动"
+        }
+      ],
+      "answer": "C",
+      "explanation": "未展开缓冲器的坠落悬挂安全绳不超过2m",
+      "rule_id": "PPE-006",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-TF-01",
+      "scene": "personal_protection",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（个体防护）：使用者必须经过培训确认有能力正确使用安全带",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "使用者必须经过培训确认有能力正确使用安全带",
+      "rule_id": "PPE-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-TF-02",
+      "scene": "personal_protection",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（个体防护）：熟练工进行短时高处作业时，可以自行减少防护用品",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "高处作业人员应根据作业的实际情况配备相应的高处作业安全防护用品，并应按规定正确佩戴和使用相应的安全防护用品、用具",
+      "rule_id": "GZ-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-TF-03",
+      "scene": "personal_protection",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（个体防护）：高处作业施工前，应按类别对安全防护设施进行检查、验收，验收合格后方可进行作业，并应做验收记录",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "高处作业施工前，应按类别对安全防护设施进行检查、验收，验收合格后方可进行作业，并应做验收记录",
+      "rule_id": "GZ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "personal_protection-TF-04",
+      "scene": "personal_protection",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（个体防护）：班前已经口头说明风险时，安全技术交底可以不留记录",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "高处作业施工前，应对作业人员进行安全技术交底，并应记录",
+      "rule_id": "GZ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-SC-01",
+      "scene": "edge_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于临边作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "楼梯口和楼层平台边未安装防护栏杆"
+        },
+        {
+          "key": "B",
+          "text": "外脚手架尚未搭设时，建筑物外围不设置防护栏杆"
+        },
+        {
+          "key": "C",
+          "text": "2m及以上临边设置栏杆并采用立网或栏板封闭"
+        },
+        {
+          "key": "D",
+          "text": "临边只拉警示带，不设置防护栏杆或安全网"
+        }
+      ],
+      "answer": "C",
+      "explanation": "2m及以上临边设置栏杆并采用立网或栏板封闭",
+      "rule_id": "LB-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-SC-02",
+      "scene": "edge_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行临边作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "临时拆下临边防护后继续作业且不采取替代措施"
+        },
+        {
+          "key": "B",
+          "text": "在临边防护栏杆上倚靠、坐立或放置材料"
+        },
+        {
+          "key": "C",
+          "text": "停层平台门向外开启，且未设置防外开装置"
+        },
+        {
+          "key": "D",
+          "text": "楼梯口、楼梯平台和梯段边安装防护栏杆"
+        }
+      ],
+      "answer": "D",
+      "explanation": "楼梯口、楼梯平台和梯段边安装防护栏杆",
+      "rule_id": "LB-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-SC-03",
+      "scene": "edge_work",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行临边作业时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "无外脚手架的建筑外围边沿设置防护栏杆"
+        },
+        {
+          "key": "B",
+          "text": "临边只拉警示带，不设置防护栏杆或安全网"
+        },
+        {
+          "key": "C",
+          "text": "临时拆下临边防护后继续作业且不采取替代措施"
+        },
+        {
+          "key": "D",
+          "text": "在临边防护栏杆上倚靠、坐立或放置材料"
+        }
+      ],
+      "answer": "A",
+      "explanation": "无外脚手架的建筑外围边沿设置防护栏杆",
+      "rule_id": "LB-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-SC-04",
+      "scene": "edge_work",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论临边作业安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "停层平台门向外开启，且未设置防外开装置"
+        },
+        {
+          "key": "B",
+          "text": "有外脚手架的工程采用密目式安全立网全封闭"
+        },
+        {
+          "key": "C",
+          "text": "楼梯口和楼层平台边未安装防护栏杆"
+        },
+        {
+          "key": "D",
+          "text": "外脚手架尚未搭设时，建筑物外围不设置防护栏杆"
+        }
+      ],
+      "answer": "B",
+      "explanation": "有外脚手架的工程采用密目式安全立网全封闭",
+      "rule_id": "LB-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-SC-05",
+      "scene": "edge_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于临边作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "外脚手架尚未搭设时，建筑物外围不设置防护栏杆"
+        },
+        {
+          "key": "B",
+          "text": "在临边防护栏杆上倚靠、坐立或放置材料"
+        },
+        {
+          "key": "C",
+          "text": "停层平台两侧设置栏杆、挡脚板和封闭防护"
+        },
+        {
+          "key": "D",
+          "text": "临边只拉警示带，不设置防护栏杆或安全网"
+        }
+      ],
+      "answer": "C",
+      "explanation": "停层平台两侧设置栏杆、挡脚板和封闭防护",
+      "rule_id": "LB-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-SC-06",
+      "scene": "edge_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行临边作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "楼梯口和楼层平台边未安装防护栏杆"
+        },
+        {
+          "key": "B",
+          "text": "临时拆下临边防护后继续作业且不采取替代措施"
+        },
+        {
+          "key": "C",
+          "text": "停层平台门向外开启，且未设置防外开装置"
+        },
+        {
+          "key": "D",
+          "text": "停层平台口设置不低于1.80m且防外开的防护门"
+        }
+      ],
+      "answer": "D",
+      "explanation": "停层平台口设置不低于1.80m且防外开的防护门",
+      "rule_id": "LB-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-TF-01",
+      "scene": "edge_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（临边作业）：防护栏杆应为两道横杆，上杆距地面高度应为1.2m，下杆应在上杆和挡脚板中间设置",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "防护栏杆应为两道横杆，上杆距地面高度应为1.2m，下杆应在上杆和挡脚板中间设置",
+      "rule_id": "HL-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-TF-02",
+      "scene": "edge_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（临边作业）：防护栏杆立杆固定牢固时，间距可以放宽到3m",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "防护栏杆立杆间距不应大于2m",
+      "rule_id": "HL-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-TF-03",
+      "scene": "edge_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（临边作业）：挡脚板高度不应小于180mm",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "挡脚板高度不应小于180mm",
+      "rule_id": "HL-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "edge_work-TF-04",
+      "scene": "edge_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（临边作业）：防护栏杆设有两道横杆后，可以不再张挂立网或封闭材料",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "防护栏杆应张挂密目式安全立网或其他材料封闭",
+      "rule_id": "HL-013",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-SC-01",
+      "scene": "opening_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于洞口作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "小洞口只放一块未固定的薄板作为盖板"
+        },
+        {
+          "key": "B",
+          "text": "洞口盖板可以移位，但现场只设置一块提示牌"
+        },
+        {
+          "key": "C",
+          "text": "大洞口只设置警戒线，不设防护栏杆和安全平网"
+        },
+        {
+          "key": "D",
+          "text": "根据洞口尺寸和方向设置可靠的防坠落措施"
+        }
+      ],
+      "answer": "D",
+      "explanation": "根据洞口尺寸和方向设置可靠的防坠落措施",
+      "rule_id": "DK-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-SC-02",
+      "scene": "opening_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行洞口作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "竖向洞口短边小于500mm时采取封堵措施"
+        },
+        {
+          "key": "B",
+          "text": "为运输材料临时打开洞口防护后无人看守"
+        },
+        {
+          "key": "C",
+          "text": "在电梯井口附近堆放可能滑落的材料和工具"
+        },
+        {
+          "key": "D",
+          "text": "洞口边长达到500mm后仍只用松散木板覆盖"
+        }
+      ],
+      "answer": "A",
+      "explanation": "竖向洞口短边小于500mm时采取封堵措施",
+      "rule_id": "DK-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-SC-03",
+      "scene": "opening_work",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行洞口作业时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在电梯井口附近堆放可能滑落的材料和工具"
+        },
+        {
+          "key": "B",
+          "text": "较大垂直洞口设置栏杆、封闭防护和挡脚板"
+        },
+        {
+          "key": "C",
+          "text": "小洞口只放一块未固定的薄板作为盖板"
+        },
+        {
+          "key": "D",
+          "text": "为运输材料临时打开洞口防护后无人看守"
+        }
+      ],
+      "answer": "B",
+      "explanation": "较大垂直洞口设置栏杆、封闭防护和挡脚板",
+      "rule_id": "DK-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-SC-04",
+      "scene": "opening_work",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论洞口作业安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "大洞口只设置警戒线，不设防护栏杆和安全平网"
+        },
+        {
+          "key": "B",
+          "text": "洞口边长达到500mm后仍只用松散木板覆盖"
+        },
+        {
+          "key": "C",
+          "text": "25mm至500mm非竖向洞口用可靠盖板固定覆盖"
+        },
+        {
+          "key": "D",
+          "text": "洞口盖板可以移位，但现场只设置一块提示牌"
+        }
+      ],
+      "answer": "C",
+      "explanation": "25mm至500mm非竖向洞口用可靠盖板固定覆盖",
+      "rule_id": "DK-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-SC-05",
+      "scene": "opening_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于洞口作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "小洞口只放一块未固定的薄板作为盖板"
+        },
+        {
+          "key": "B",
+          "text": "大洞口只设置警戒线，不设防护栏杆和安全平网"
+        },
+        {
+          "key": "C",
+          "text": "在电梯井口附近堆放可能滑落的材料和工具"
+        },
+        {
+          "key": "D",
+          "text": "500mm至1500mm洞口用牢固盖板或栏杆防护"
+        }
+      ],
+      "answer": "D",
+      "explanation": "500mm至1500mm洞口用牢固盖板或栏杆防护",
+      "rule_id": "DK-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-SC-06",
+      "scene": "opening_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行洞口作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "1500mm及以上洞口设置栏杆并用安全平网封闭"
+        },
+        {
+          "key": "B",
+          "text": "洞口盖板可以移位，但现场只设置一块提示牌"
+        },
+        {
+          "key": "C",
+          "text": "为运输材料临时打开洞口防护后无人看守"
+        },
+        {
+          "key": "D",
+          "text": "洞口边长达到500mm后仍只用松散木板覆盖"
+        }
+      ],
+      "answer": "A",
+      "explanation": "1500mm及以上洞口设置栏杆并用安全平网封闭",
+      "rule_id": "DK-006",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-TF-01",
+      "scene": "opening_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（洞口作业）：电梯井口应设置防护门，其高度不应小于1.5m，防护门底端距地面高度不应大于50mm，并应设置挡脚板",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "电梯井口应设置防护门，其高度不应小于1.5m，防护门底端距地面高度不应大于50mm，并应设置挡脚板",
+      "rule_id": "DK-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-TF-02",
+      "scene": "opening_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（洞口作业）：电梯井道内每隔4层且不超过20m设置一道安全平网即可",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "在电梯施工前，电梯井道内应每隔2层且不大于10m加设一道安全平网",
+      "rule_id": "DK-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-TF-03",
+      "scene": "opening_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（洞口作业）：电梯井内的施工层上部，应设置隔离防护设施",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "电梯井内的施工层上部，应设置隔离防护设施",
+      "rule_id": "DK-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "opening_work-TF-04",
+      "scene": "opening_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（洞口作业）：窗台低于800mm的竖向洞口只设置警示带即可",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "墙面等处落地的竖向洞口、窗台高度低于800mm的竖向洞口及框架结构在浇筑完混凝土未砌筑墙体时的洞口，应按临边防护要求设置防护栏杆",
+      "rule_id": "DK-011",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-SC-01",
+      "scene": "climbing_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于攀登作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "通过施工通道、合格梯具等设施登高"
+        },
+        {
+          "key": "B",
+          "text": "两名工人同时站在同一架梯子上作业"
+        },
+        {
+          "key": "C",
+          "text": "梯子高度不足时在梯脚下垫砖后继续使用"
+        },
+        {
+          "key": "D",
+          "text": "不设置登高通道，直接沿脚手架杆件攀爬"
+        }
+      ],
+      "answer": "A",
+      "explanation": "通过施工通道、合格梯具等设施登高",
+      "rule_id": "PD-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-SC-02",
+      "scene": "climbing_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行攀登作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "直梯与地面夹角明显偏小，梯脚也未采取防滑措施"
+        },
+        {
+          "key": "B",
+          "text": "使用前确认攀登设施和用具牢固可靠"
+        },
+        {
+          "key": "C",
+          "text": "梯子踏步缺失一档但仍继续使用"
+        },
+        {
+          "key": "D",
+          "text": "普通直梯未固定，也未安排专人监护"
+        }
+      ],
+      "answer": "B",
+      "explanation": "使用前确认攀登设施和用具牢固可靠",
+      "rule_id": "PD-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-SC-03",
+      "scene": "climbing_work",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行攀登作业时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "梯子踏步缺失一档但仍继续使用"
+        },
+        {
+          "key": "B",
+          "text": "普通直梯未固定，也未安排专人监护"
+        },
+        {
+          "key": "C",
+          "text": "同一架梯子一次只允许一人作业"
+        },
+        {
+          "key": "D",
+          "text": "两名工人同时站在同一架梯子上作业"
+        }
+      ],
+      "answer": "C",
+      "explanation": "同一架梯子一次只允许一人作业",
+      "rule_id": "PD-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-SC-04",
+      "scene": "climbing_work",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论攀登作业安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "梯子高度不足时在梯脚下垫砖后继续使用"
+        },
+        {
+          "key": "B",
+          "text": "不设置登高通道，直接沿脚手架杆件攀爬"
+        },
+        {
+          "key": "C",
+          "text": "直梯与地面夹角明显偏小，梯脚也未采取防滑措施"
+        },
+        {
+          "key": "D",
+          "text": "通道处用梯时安排监护或设置围栏"
+        }
+      ],
+      "answer": "D",
+      "explanation": "通道处用梯时安排监护或设置围栏",
+      "rule_id": "PD-006",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-SC-05",
+      "scene": "climbing_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于攀登作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "脚手架操作层不架设梯子进行作业"
+        },
+        {
+          "key": "B",
+          "text": "两名工人同时站在同一架梯子上作业"
+        },
+        {
+          "key": "C",
+          "text": "不设置登高通道，直接沿脚手架杆件攀爬"
+        },
+        {
+          "key": "D",
+          "text": "普通直梯未固定，也未安排专人监护"
+        }
+      ],
+      "answer": "A",
+      "explanation": "脚手架操作层不架设梯子进行作业",
+      "rule_id": "PD-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-SC-06",
+      "scene": "climbing_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行攀登作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "直梯与地面夹角明显偏小，梯脚也未采取防滑措施"
+        },
+        {
+          "key": "B",
+          "text": "单梯按约75度设置，踏步完整且不垫高使用"
+        },
+        {
+          "key": "C",
+          "text": "梯子高度不足时在梯脚下垫砖后继续使用"
+        },
+        {
+          "key": "D",
+          "text": "梯子踏步缺失一档但仍继续使用"
+        }
+      ],
+      "answer": "B",
+      "explanation": "单梯按约75度设置，踏步完整且不垫高使用",
+      "rule_id": "PD-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-TF-01",
+      "scene": "climbing_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（攀登作业）：使用固定式直梯攀登作业时，当攀登高度超过3m时，宜加设护笼",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "使用固定式直梯攀登作业时，当攀登高度超过3m时，宜加设护笼",
+      "rule_id": "PD-010",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-TF-02",
+      "scene": "climbing_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（攀登作业）：攀登高度超过8m时，可以使用一架连续直梯而不设梯间平台",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "当攀登高度超过8m时，应设置梯间平台",
+      "rule_id": "PD-011",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-TF-03",
+      "scene": "climbing_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（攀登作业）：采用斜道时，应加设间距不大于400mm的防滑条等防滑措施",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "采用斜道时，应加设间距不大于400mm的防滑条等防滑措施",
+      "rule_id": "PD-018",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "climbing_work-TF-04",
+      "scene": "climbing_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（攀登作业）：坑壁看起来牢固时，作业人员可以沿坑壁或支撑上下",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "作业人员严禁沿坑壁、支撑或乘运土工具上下",
+      "rule_id": "PD-019",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-SC-01",
+      "scene": "suspended_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于悬空作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "高处绑扎钢筋时不设操作平台，只依靠安全带"
+        },
+        {
+          "key": "B",
+          "text": "立足点设置稳固并配齐登高和防坠设施"
+        },
+        {
+          "key": "C",
+          "text": "站在尚未固定且没有防护设施的构件上作业"
+        },
+        {
+          "key": "D",
+          "text": "在钢筋骨架上站立或沿骨架攀爬"
+        }
+      ],
+      "answer": "B",
+      "explanation": "立足点设置稳固并配齐登高和防坠设施",
+      "rule_id": "XK-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-SC-02",
+      "scene": "suspended_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行悬空作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "悬空作业立足点不稳固，仍继续进行安装"
+        },
+        {
+          "key": "B",
+          "text": "未设置登高和防坠装置便开始悬空作业"
+        },
+        {
+          "key": "C",
+          "text": "吊装大型构件前预设通道和操作立足点"
+        },
+        {
+          "key": "D",
+          "text": "在管道上行走，把管道当作临时通道"
+        }
+      ],
+      "answer": "C",
+      "explanation": "吊装大型构件前预设通道和操作立足点",
+      "rule_id": "XK-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-SC-03",
+      "scene": "suspended_work",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行悬空作业时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "站在尚未固定且没有防护设施的构件上作业"
+        },
+        {
+          "key": "B",
+          "text": "在管道上行走，把管道当作临时通道"
+        },
+        {
+          "key": "C",
+          "text": "悬空作业立足点不稳固，仍继续进行安装"
+        },
+        {
+          "key": "D",
+          "text": "只在已固定且有防护的构件或平台上作业"
+        }
+      ],
+      "answer": "D",
+      "explanation": "只在已固定且有防护的构件或平台上作业",
+      "rule_id": "XK-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-SC-04",
+      "scene": "suspended_work",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论悬空作业安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "绑扎柱墙钢筋时使用平台，不攀站钢筋骨架"
+        },
+        {
+          "key": "B",
+          "text": "在钢筋骨架上站立或沿骨架攀爬"
+        },
+        {
+          "key": "C",
+          "text": "高处绑扎钢筋时不设操作平台，只依靠安全带"
+        },
+        {
+          "key": "D",
+          "text": "未设置登高和防坠装置便开始悬空作业"
+        }
+      ],
+      "answer": "A",
+      "explanation": "绑扎柱墙钢筋时使用平台，不攀站钢筋骨架",
+      "rule_id": "XK-015",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-SC-05",
+      "scene": "suspended_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于悬空作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "悬空作业立足点不稳固，仍继续进行安装"
+        },
+        {
+          "key": "B",
+          "text": "2m及以上绑扎柱筋或张拉时搭设操作平台"
+        },
+        {
+          "key": "C",
+          "text": "站在尚未固定且没有防护设施的构件上作业"
+        },
+        {
+          "key": "D",
+          "text": "高处绑扎钢筋时不设操作平台，只依靠安全带"
+        }
+      ],
+      "answer": "B",
+      "explanation": "2m及以上绑扎柱筋或张拉时搭设操作平台",
+      "rule_id": "XK-016",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-SC-06",
+      "scene": "suspended_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行悬空作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在管道上行走，把管道当作临时通道"
+        },
+        {
+          "key": "B",
+          "text": "未设置登高和防坠装置便开始悬空作业"
+        },
+        {
+          "key": "C",
+          "text": "2m及以上浇筑构件时设置脚手架或操作平台"
+        },
+        {
+          "key": "D",
+          "text": "在钢筋骨架上站立或沿骨架攀爬"
+        }
+      ],
+      "answer": "C",
+      "explanation": "2m及以上浇筑构件时设置脚手架或操作平台",
+      "rule_id": "XK-017",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-TF-01",
+      "scene": "suspended_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（悬空作业）：悬挑的混凝土梁和檐、外墙和边柱等结构施工时，应搭设脚手架或操作平台",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "悬挑的混凝土梁和檐、外墙和边柱等结构施工时，应搭设脚手架或操作平台",
+      "rule_id": "XK-018",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-TF-02",
+      "scene": "suspended_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（悬空作业）：坡度大于25度的屋面无外脚手架时，只挂安全带即可作业",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "在坡度大于25°的屋面上作业，当无外脚手架时，应在屋檐边设置不低于1.5m高的防护栏杆，并应采用密目式安全立网全封闭",
+      "rule_id": "XK-019",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-TF-03",
+      "scene": "suspended_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（悬空作业）：在轻质型材等屋面上作业：应搭设临时走道板，不得在轻质型材上行走",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "在轻质型材等屋面上作业：应搭设临时走道板，不得在轻质型材上行走",
+      "rule_id": "XK-020",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_work-TF-04",
+      "scene": "suspended_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（悬空作业）：门窗作业人员系好安全带后，可以站在窗樘上作业",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "门窗作业时，应有防坠落措施，操作人员在无安全防护措施时，不得站立在樘子、阳台栏板上作业",
+      "rule_id": "XK-022",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-SC-01",
+      "scene": "cross_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于交叉作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "坠落半径内没有安全隔离设施，仅安排人员口头提醒"
+        },
+        {
+          "key": "B",
+          "text": "在起重机吊臂回转范围内设置无防护的人行通道"
+        },
+        {
+          "key": "C",
+          "text": "防护棚和警戒区范围按高度确定并大于坠落半径"
+        },
+        {
+          "key": "D",
+          "text": "人员直接进入上方作业的坠落半径内通行"
+        }
+      ],
+      "answer": "C",
+      "explanation": "防护棚和警戒区范围按高度确定并大于坠落半径",
+      "rule_id": "JC-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-SC-02",
+      "scene": "cross_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行交叉作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "人员进出通道口上方有交叉作业但未搭安全防护棚"
+        },
+        {
+          "key": "B",
+          "text": "把材料临时堆放在安全防护棚顶"
+        },
+        {
+          "key": "C",
+          "text": "上方作业人员向下抛送小型工具和材料"
+        },
+        {
+          "key": "D",
+          "text": "坠落半径内设置防护棚或防护网进行隔离"
+        }
+      ],
+      "answer": "D",
+      "explanation": "坠落半径内设置防护棚或防护网进行隔离",
+      "rule_id": "JC-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-SC-03",
+      "scene": "cross_work",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行交叉作业时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "未设隔离设施时划定警戒区并禁止人员进入"
+        },
+        {
+          "key": "B",
+          "text": "人员直接进入上方作业的坠落半径内通行"
+        },
+        {
+          "key": "C",
+          "text": "人员进出通道口上方有交叉作业但未搭安全防护棚"
+        },
+        {
+          "key": "D",
+          "text": "把材料临时堆放在安全防护棚顶"
+        }
+      ],
+      "answer": "A",
+      "explanation": "未设隔离设施时划定警戒区并禁止人员进入",
+      "rule_id": "JC-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-SC-04",
+      "scene": "cross_work",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论交叉作业安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "上方作业人员向下抛送小型工具和材料"
+        },
+        {
+          "key": "B",
+          "text": "起重机臂架回转范围内的通道搭设防护棚"
+        },
+        {
+          "key": "C",
+          "text": "坠落半径内没有安全隔离设施，仅安排人员口头提醒"
+        },
+        {
+          "key": "D",
+          "text": "在起重机吊臂回转范围内设置无防护的人行通道"
+        }
+      ],
+      "answer": "B",
+      "explanation": "起重机臂架回转范围内的通道搭设防护棚",
+      "rule_id": "JC-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-SC-05",
+      "scene": "cross_work",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于交叉作业，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在起重机吊臂回转范围内设置无防护的人行通道"
+        },
+        {
+          "key": "B",
+          "text": "把材料临时堆放在安全防护棚顶"
+        },
+        {
+          "key": "C",
+          "text": "施工现场人员进出通道口搭设防护棚"
+        },
+        {
+          "key": "D",
+          "text": "人员直接进入上方作业的坠落半径内通行"
+        }
+      ],
+      "answer": "C",
+      "explanation": "施工现场人员进出通道口搭设防护棚",
+      "rule_id": "JC-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-SC-06",
+      "scene": "cross_work",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行交叉作业，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "坠落半径内没有安全隔离设施，仅安排人员口头提醒"
+        },
+        {
+          "key": "B",
+          "text": "人员进出通道口上方有交叉作业但未搭安全防护棚"
+        },
+        {
+          "key": "C",
+          "text": "上方作业人员向下抛送小型工具和材料"
+        },
+        {
+          "key": "D",
+          "text": "安全防护棚棚顶保持清空，不堆放物料"
+        }
+      ],
+      "answer": "D",
+      "explanation": "安全防护棚棚顶保持清空，不堆放物料",
+      "rule_id": "JC-006",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-TF-01",
+      "scene": "cross_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（交叉作业）：当采用脚手架搭设安全防护棚架构时，应符合国家现行相关脚手架标准的规定",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "当采用脚手架搭设安全防护棚架构时，应符合国家现行相关脚手架标准的规定",
+      "rule_id": "JC-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-TF-02",
+      "scene": "cross_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（交叉作业）：高层外立面交叉作业只需在二层设置一道固定防护网",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "对不搭设脚手架和设置安全防护棚时的交叉作业，应设置安全防护网，当在多层、高层建筑外立面施工时，应在二层及每隔四层设一道固定的安全防护网，同时设一道随施工高度提升的安全防护网",
+      "rule_id": "JC-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-TF-03",
+      "scene": "cross_work",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（交叉作业）：当安全防护棚为非机动车辆通行时，棚底至地面高度不应小于3m",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "当安全防护棚为非机动车辆通行时，棚底至地面高度不应小于3m",
+      "rule_id": "JC-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "cross_work-TF-04",
+      "scene": "cross_work",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（交叉作业）：机动车通行的防护棚棚底距地面达到3m即可",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "当安全防护棚为机动车辆通行时，棚底至地面高度不应小于4m",
+      "rule_id": "JC-010",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-SC-01",
+      "scene": "scaffold_erection",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于脚手架搭设，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "没有专项施工方案，仅凭以往经验开始搭设脚手架"
+        },
+        {
+          "key": "B",
+          "text": "专项方案尚未交底，作业人员先按班组习惯施工"
+        },
+        {
+          "key": "C",
+          "text": "搭设区域不设警戒线和监护人，允许其他人员穿行"
+        },
+        {
+          "key": "D",
+          "text": "专项施工方案编制并审批后再搭设脚手架"
+        }
+      ],
+      "answer": "D",
+      "explanation": "专项施工方案编制并审批后再搭设脚手架",
+      "rule_id": "JSJ-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-SC-02",
+      "scene": "scaffold_erection",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行脚手架搭设，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "搭设前向管理和作业人员完成方案交底"
+        },
+        {
+          "key": "B",
+          "text": "落地脚手架一次搭到最上层连墙件以上4步"
+        },
+        {
+          "key": "C",
+          "text": "为方便运输，搭设过程中暂不安装剪刀撑和斜撑"
+        },
+        {
+          "key": "D",
+          "text": "作业人员穿普通硬底鞋在架体上搭设杆件"
+        }
+      ],
+      "answer": "A",
+      "explanation": "搭设前向管理和作业人员完成方案交底",
+      "rule_id": "JSJ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-SC-03",
+      "scene": "scaffold_erection",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行脚手架搭设时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "为方便运输，搭设过程中暂不安装剪刀撑和斜撑"
+        },
+        {
+          "key": "B",
+          "text": "人员佩戴防护用品并穿防滑鞋进行搭设"
+        },
+        {
+          "key": "C",
+          "text": "没有专项施工方案，仅凭以往经验开始搭设脚手架"
+        },
+        {
+          "key": "D",
+          "text": "落地脚手架一次搭到最上层连墙件以上4步"
+        }
+      ],
+      "answer": "B",
+      "explanation": "人员佩戴防护用品并穿防滑鞋进行搭设",
+      "rule_id": "JSJ-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-SC-04",
+      "scene": "scaffold_erection",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论脚手架搭设安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "搭设区域不设警戒线和监护人，允许其他人员穿行"
+        },
+        {
+          "key": "B",
+          "text": "作业人员穿普通硬底鞋在架体上搭设杆件"
+        },
+        {
+          "key": "C",
+          "text": "搭设区设警戒线和监护人，禁止无关人员进入"
+        },
+        {
+          "key": "D",
+          "text": "专项方案尚未交底，作业人员先按班组习惯施工"
+        }
+      ],
+      "answer": "C",
+      "explanation": "搭设区设警戒线和监护人，禁止无关人员进入",
+      "rule_id": "JSJ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-SC-05",
+      "scene": "scaffold_erection",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于脚手架搭设，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "没有专项施工方案，仅凭以往经验开始搭设脚手架"
+        },
+        {
+          "key": "B",
+          "text": "搭设区域不设警戒线和监护人，允许其他人员穿行"
+        },
+        {
+          "key": "C",
+          "text": "为方便运输，搭设过程中暂不安装剪刀撑和斜撑"
+        },
+        {
+          "key": "D",
+          "text": "架体按顺序与主体同步搭设并控制自由高度"
+        }
+      ],
+      "answer": "D",
+      "explanation": "架体按顺序与主体同步搭设并控制自由高度",
+      "rule_id": "JSJ-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-SC-06",
+      "scene": "scaffold_erection",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行脚手架搭设，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "剪刀撑和斜撑等加固杆件随架体同步搭设"
+        },
+        {
+          "key": "B",
+          "text": "专项方案尚未交底，作业人员先按班组习惯施工"
+        },
+        {
+          "key": "C",
+          "text": "落地脚手架一次搭到最上层连墙件以上4步"
+        },
+        {
+          "key": "D",
+          "text": "作业人员穿普通硬底鞋在架体上搭设杆件"
+        }
+      ],
+      "answer": "A",
+      "explanation": "剪刀撑和斜撑等加固杆件随架体同步搭设",
+      "rule_id": "JSJ-006",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-TF-01",
+      "scene": "scaffold_erection",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（脚手架搭设）：作业脚手架连墙件安装应符合下列规定：连墙件的安装应随作业脚手架搭设同步进行",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "作业脚手架连墙件安装应符合下列规定：连墙件的安装应随作业脚手架搭设同步进行",
+      "rule_id": "JSJ-007",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-TF-02",
+      "scene": "scaffold_erection",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（脚手架搭设）：操作层高出相邻连墙件2步后仍可继续搭设，完工再补拉结",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "当作业脚手架操作层高出相邻连墙件2个步距及以上时，在上层连墙件安装完毕前，应采取临时拉结措施",
+      "rule_id": "JSJ-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-TF-03",
+      "scene": "scaffold_erection",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（脚手架搭设）：脚手架安全防护网和防护栏杆等防护设施应随架体搭设同步安装到位",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "脚手架安全防护网和防护栏杆等防护设施应随架体搭设同步安装到位",
+      "rule_id": "JSJ-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_erection-TF-04",
+      "scene": "scaffold_erection",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（脚手架搭设）：脚手架搭设完工后经外观检查即可使用，验收记录可以后补",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "脚手架搭设完工后应进行验收，验收合格后方可使用",
+      "rule_id": "JSJ-064",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-SC-01",
+      "scene": "scaffold_dismantling",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于脚手架拆除，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "专项施工方案编制并审批后再拆除脚手架"
+        },
+        {
+          "key": "B",
+          "text": "从架体底部开始拆除，让上部杆件保持悬空"
+        },
+        {
+          "key": "C",
+          "text": "上下两个作业层同时拆除脚手架"
+        },
+        {
+          "key": "D",
+          "text": "提前整层拆除连墙件后再拆对应架体"
+        }
+      ],
+      "answer": "A",
+      "explanation": "专项施工方案编制并审批后再拆除脚手架",
+      "rule_id": "JSJ-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-SC-02",
+      "scene": "scaffold_dismantling",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行脚手架拆除，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "未按先外后内顺序拆除同层杆件和构配件"
+        },
+        {
+          "key": "B",
+          "text": "拆除前向管理和作业人员完成方案交底"
+        },
+        {
+          "key": "C",
+          "text": "拆下的杆件和扣件直接向地面抛掷"
+        },
+        {
+          "key": "D",
+          "text": "拆除区域不设警戒线，允许非作业人员穿行"
+        }
+      ],
+      "answer": "B",
+      "explanation": "拆除前向管理和作业人员完成方案交底",
+      "rule_id": "JSJ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-SC-03",
+      "scene": "scaffold_dismantling",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行脚手架拆除时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "拆下的杆件和扣件直接向地面抛掷"
+        },
+        {
+          "key": "B",
+          "text": "拆除区域不设警戒线，允许非作业人员穿行"
+        },
+        {
+          "key": "C",
+          "text": "人员佩戴防护用品并穿防滑鞋进行拆除"
+        },
+        {
+          "key": "D",
+          "text": "从架体底部开始拆除，让上部杆件保持悬空"
+        }
+      ],
+      "answer": "C",
+      "explanation": "人员佩戴防护用品并穿防滑鞋进行拆除",
+      "rule_id": "JSJ-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-SC-04",
+      "scene": "scaffold_dismantling",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论脚手架拆除安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "上下两个作业层同时拆除脚手架"
+        },
+        {
+          "key": "B",
+          "text": "提前整层拆除连墙件后再拆对应架体"
+        },
+        {
+          "key": "C",
+          "text": "未按先外后内顺序拆除同层杆件和构配件"
+        },
+        {
+          "key": "D",
+          "text": "拆除区设警戒线和监护人，禁止无关人员进入"
+        }
+      ],
+      "answer": "D",
+      "explanation": "拆除区设警戒线和监护人，禁止无关人员进入",
+      "rule_id": "JSJ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-SC-05",
+      "scene": "scaffold_dismantling",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于脚手架拆除，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "架体自上而下逐层拆除，不上下同时作业"
+        },
+        {
+          "key": "B",
+          "text": "从架体底部开始拆除，让上部杆件保持悬空"
+        },
+        {
+          "key": "C",
+          "text": "提前整层拆除连墙件后再拆对应架体"
+        },
+        {
+          "key": "D",
+          "text": "拆除区域不设警戒线，允许非作业人员穿行"
+        }
+      ],
+      "answer": "A",
+      "explanation": "架体自上而下逐层拆除，不上下同时作业",
+      "rule_id": "JSJ-018",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-SC-06",
+      "scene": "scaffold_dismantling",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行脚手架拆除，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "未按先外后内顺序拆除同层杆件和构配件"
+        },
+        {
+          "key": "B",
+          "text": "同层杆件和构配件按先外后内顺序拆除"
+        },
+        {
+          "key": "C",
+          "text": "上下两个作业层同时拆除脚手架"
+        },
+        {
+          "key": "D",
+          "text": "拆下的杆件和扣件直接向地面抛掷"
+        }
+      ],
+      "answer": "B",
+      "explanation": "同层杆件和构配件按先外后内顺序拆除",
+      "rule_id": "JSJ-019",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-TF-01",
+      "scene": "scaffold_dismantling",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（脚手架拆除）：作业脚手架连墙件应随架体逐层、同步拆除，不应先将连墙件整层或数层拆除后再拆架体",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "作业脚手架连墙件应随架体逐层、同步拆除，不应先将连墙件整层或数层拆除后再拆架体",
+      "rule_id": "JSJ-020",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-TF-02",
+      "scene": "scaffold_dismantling",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（脚手架拆除）：拆除时架体悬臂段超过2步，只要有人监护就不必临时拉结",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "作业脚手架拆除作业过程中，当架体悬臂段高度超过2步时，应加设临时拉结",
+      "rule_id": "JSJ-021",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-TF-03",
+      "scene": "scaffold_dismantling",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（脚手架拆除）：严禁高空抛掷拆除后的脚手架材料与构配件",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "严禁高空抛掷拆除后的脚手架材料与构配件",
+      "rule_id": "JSJ-022",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "scaffold_dismantling-TF-04",
+      "scene": "scaffold_dismantling",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（脚手架拆除）：小雨或有雾时可以继续拆除脚手架，只需提醒人员慢行",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "雨、雪、雾天气应停止脚手架的搭设和拆除作业，雨、雪、霜后上架作业应采取有效的防滑措施，雪天应清除积雪",
+      "rule_id": "JSJ-012",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-SC-01",
+      "scene": "work_platform",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于操作平台，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "平台临边只拉警示带，不设置防护栏杆"
+        },
+        {
+          "key": "B",
+          "text": "操作平台经设计计算并编制专项方案"
+        },
+        {
+          "key": "C",
+          "text": "操作平台未作设计计算，仅按现场材料尺寸搭设"
+        },
+        {
+          "key": "D",
+          "text": "平台脚手板没有满铺，板端也未可靠固定"
+        }
+      ],
+      "answer": "B",
+      "explanation": "操作平台经设计计算并编制专项方案",
+      "rule_id": "PT-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-SC-02",
+      "scene": "work_platform",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行操作平台，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "平台材料短时间超重、超高堆放，不及时转运"
+        },
+        {
+          "key": "B",
+          "text": "移动平台制动装置失效后仍继续使用"
+        },
+        {
+          "key": "C",
+          "text": "平台脚手板满足承载要求、满铺并可靠固定"
+        },
+        {
+          "key": "D",
+          "text": "移动平台时让作业人员继续站在平台上"
+        }
+      ],
+      "answer": "C",
+      "explanation": "平台脚手板满足承载要求、满铺并可靠固定",
+      "rule_id": "PT-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-SC-03",
+      "scene": "work_platform",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行操作平台时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "操作平台未作设计计算，仅按现场材料尺寸搭设"
+        },
+        {
+          "key": "B",
+          "text": "移动平台时让作业人员继续站在平台上"
+        },
+        {
+          "key": "C",
+          "text": "平台材料短时间超重、超高堆放，不及时转运"
+        },
+        {
+          "key": "D",
+          "text": "平台临边设栏杆，并配置合规的上下扶梯"
+        }
+      ],
+      "answer": "D",
+      "explanation": "平台临边设栏杆，并配置合规的上下扶梯",
+      "rule_id": "PT-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-SC-04",
+      "scene": "work_platform",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论操作平台安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "平台明示限载和人数，物料及时转运"
+        },
+        {
+          "key": "B",
+          "text": "平台脚手板没有满铺，板端也未可靠固定"
+        },
+        {
+          "key": "C",
+          "text": "平台临边只拉警示带，不设置防护栏杆"
+        },
+        {
+          "key": "D",
+          "text": "移动平台制动装置失效后仍继续使用"
+        }
+      ],
+      "answer": "A",
+      "explanation": "平台明示限载和人数，物料及时转运",
+      "rule_id": "PT-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-SC-05",
+      "scene": "work_platform",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于操作平台，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "平台材料短时间超重、超高堆放，不及时转运"
+        },
+        {
+          "key": "B",
+          "text": "平台每月定期检查并由专人日常维护"
+        },
+        {
+          "key": "C",
+          "text": "操作平台未作设计计算，仅按现场材料尺寸搭设"
+        },
+        {
+          "key": "D",
+          "text": "平台临边只拉警示带，不设置防护栏杆"
+        }
+      ],
+      "answer": "B",
+      "explanation": "平台每月定期检查并由专人日常维护",
+      "rule_id": "PT-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-SC-06",
+      "scene": "work_platform",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行操作平台，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "移动平台时让作业人员继续站在平台上"
+        },
+        {
+          "key": "B",
+          "text": "移动平台制动装置失效后仍继续使用"
+        },
+        {
+          "key": "C",
+          "text": "移动平台轮架牢固并配备有效制动装置"
+        },
+        {
+          "key": "D",
+          "text": "平台脚手板没有满铺，板端也未可靠固定"
+        }
+      ],
+      "answer": "C",
+      "explanation": "移动平台轮架牢固并配备有效制动装置",
+      "rule_id": "YD-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-TF-01",
+      "scene": "work_platform",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（操作平台）：移动式操作平台移动时，操作平台上不得站人",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "移动式操作平台移动时，操作平台上不得站人",
+      "rule_id": "YD-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-TF-02",
+      "scene": "work_platform",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（操作平台）：为提高稳定性，操作平台可以直接与脚手架连接固定",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "操作平台应与建筑物进行刚性连接或加设防倾措施，不得与脚手架连接",
+      "rule_id": "LD-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-TF-03",
+      "scene": "work_platform",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（操作平台）：外侧应安装防护栏杆并应设置防护挡板全封闭",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "外侧应安装防护栏杆并应设置防护挡板全封闭",
+      "rule_id": "XT-014",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "work_platform-TF-04",
+      "scene": "work_platform",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（操作平台）：悬挑式操作平台吊运安装时，人员可以留在平台上配合",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "人员不得在悬挑式操作平台吊运、安装时上下",
+      "rule_id": "XT-015",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-SC-01",
+      "scene": "suspended_basket",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于高处作业吊篮，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "一台吊篮内同时安排3名作业人员"
+        },
+        {
+          "key": "B",
+          "text": "把安全绳和安全锁连接在吊篮栏杆上"
+        },
+        {
+          "key": "C",
+          "text": "吊篮安装灵敏有效的防坠安全锁"
+        },
+        {
+          "key": "D",
+          "text": "从楼层窗口跨入或跨出运行中的吊篮"
+        }
+      ],
+      "answer": "C",
+      "explanation": "吊篮安装灵敏有效的防坠安全锁",
+      "rule_id": "DL-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-SC-02",
+      "scene": "suspended_basket",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行高处作业吊篮，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "安全锁失效后由同伴看护，继续使用吊篮"
+        },
+        {
+          "key": "B",
+          "text": "安全带只连接在吊篮自身结构上"
+        },
+        {
+          "key": "C",
+          "text": "吊篮升降过程中人员在篮内攀爬或跨越栏杆"
+        },
+        {
+          "key": "D",
+          "text": "独立安全绳固定在建筑物可靠位置"
+        }
+      ],
+      "answer": "D",
+      "explanation": "独立安全绳固定在建筑物可靠位置",
+      "rule_id": "DL-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-SC-03",
+      "scene": "suspended_basket",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行高处作业吊篮时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "一台吊篮内作业人员不超过2人"
+        },
+        {
+          "key": "B",
+          "text": "从楼层窗口跨入或跨出运行中的吊篮"
+        },
+        {
+          "key": "C",
+          "text": "安全锁失效后由同伴看护，继续使用吊篮"
+        },
+        {
+          "key": "D",
+          "text": "安全带只连接在吊篮自身结构上"
+        }
+      ],
+      "answer": "A",
+      "explanation": "一台吊篮内作业人员不超过2人",
+      "rule_id": "DL-003",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-SC-04",
+      "scene": "suspended_basket",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论高处作业吊篮安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "吊篮升降过程中人员在篮内攀爬或跨越栏杆"
+        },
+        {
+          "key": "B",
+          "text": "安全带通过安全锁扣挂在独立安全绳上"
+        },
+        {
+          "key": "C",
+          "text": "一台吊篮内同时安排3名作业人员"
+        },
+        {
+          "key": "D",
+          "text": "把安全绳和安全锁连接在吊篮栏杆上"
+        }
+      ],
+      "answer": "B",
+      "explanation": "安全带通过安全锁扣挂在独立安全绳上",
+      "rule_id": "DL-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-SC-05",
+      "scene": "suspended_basket",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于高处作业吊篮，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把安全绳和安全锁连接在吊篮栏杆上"
+        },
+        {
+          "key": "B",
+          "text": "安全带只连接在吊篮自身结构上"
+        },
+        {
+          "key": "C",
+          "text": "作业人员从地面进出停止状态的吊篮"
+        },
+        {
+          "key": "D",
+          "text": "从楼层窗口跨入或跨出运行中的吊篮"
+        }
+      ],
+      "answer": "C",
+      "explanation": "作业人员从地面进出停止状态的吊篮",
+      "rule_id": "DL-005",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-SC-06",
+      "scene": "suspended_basket",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行高处作业吊篮，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "一台吊篮内同时安排3名作业人员"
+        },
+        {
+          "key": "B",
+          "text": "安全锁失效后由同伴看护，继续使用吊篮"
+        },
+        {
+          "key": "C",
+          "text": "吊篮升降过程中人员在篮内攀爬或跨越栏杆"
+        },
+        {
+          "key": "D",
+          "text": "防护设施检查验收合格并记录后使用吊篮"
+        }
+      ],
+      "answer": "D",
+      "explanation": "防护设施检查验收合格并记录后使用吊篮",
+      "rule_id": "GZ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-TF-01",
+      "scene": "suspended_basket",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（高处作业吊篮）：高处作业施工前，应对作业人员进行安全技术交底，并应记录",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "高处作业施工前，应对作业人员进行安全技术交底，并应记录",
+      "rule_id": "GZ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-TF-02",
+      "scene": "suspended_basket",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（高处作业吊篮）：吊篮作业时间较短时，安全带只连接在吊篮栏杆上即可",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "高处作业人员应根据作业的实际情况配备相应的高处作业安全防护用品，并应按规定正确佩戴和使用相应的安全防护用品、用具",
+      "rule_id": "GZ-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-TF-03",
+      "scene": "suspended_basket",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（高处作业吊篮）：对施工作业现场可能坠落的物料，应及时拆除或采取固定措施",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "对施工作业现场可能坠落的物料，应及时拆除或采取固定措施",
+      "rule_id": "GZ-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "suspended_basket-TF-04",
+      "scene": "suspended_basket",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（高处作业吊篮）：吊篮内拆下的小件余料可以直接抛到下方警戒区",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "拆卸下的物料及余料和废料应及时清理运走，不得随意放置或向下丢弃",
+      "rule_id": "GZ-013",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-SC-01",
+      "scene": "formwork",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于模板安装与拆除，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在上下同一垂直面同时安装和拆除模板"
+        },
+        {
+          "key": "B",
+          "text": "2m以上拆模时不设操作平台，只依靠安全带"
+        },
+        {
+          "key": "C",
+          "text": "直接站在模板支撑杆件上进行高处装模"
+        },
+        {
+          "key": "D",
+          "text": "模板按程序装拆，不在同一垂直面上下同时作业"
+        }
+      ],
+      "answer": "D",
+      "explanation": "模板按程序装拆，不在同一垂直面上下同时作业",
+      "rule_id": "XK-012",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-SC-02",
+      "scene": "formwork",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行模板安装与拆除，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "2m及以上装拆柱模和悬挑模板时设置操作平台"
+        },
+        {
+          "key": "B",
+          "text": "模板尚未固定便把模板面当作通行踏板"
+        },
+        {
+          "key": "C",
+          "text": "拆下的模板和配件堆在临边且未固定"
+        },
+        {
+          "key": "D",
+          "text": "把拆下的模板、余料直接向下抛送"
+        }
+      ],
+      "answer": "A",
+      "explanation": "2m及以上装拆柱模和悬挑模板时设置操作平台",
+      "rule_id": "XK-013",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-SC-03",
+      "scene": "formwork",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行模板安装与拆除时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "拆下的模板和配件堆在临边且未固定"
+        },
+        {
+          "key": "B",
+          "text": "高处拆模使用登高用具或搭设可靠支架"
+        },
+        {
+          "key": "C",
+          "text": "在上下同一垂直面同时安装和拆除模板"
+        },
+        {
+          "key": "D",
+          "text": "模板尚未固定便把模板面当作通行踏板"
+        }
+      ],
+      "answer": "B",
+      "explanation": "高处拆模使用登高用具或搭设可靠支架",
+      "rule_id": "XK-014",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-SC-04",
+      "scene": "formwork",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论模板安装与拆除安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "直接站在模板支撑杆件上进行高处装模"
+        },
+        {
+          "key": "B",
+          "text": "把拆下的模板、余料直接向下抛送"
+        },
+        {
+          "key": "C",
+          "text": "悬空拆模的立足点稳固并配置防坠设施"
+        },
+        {
+          "key": "D",
+          "text": "2m以上拆模时不设操作平台，只依靠安全带"
+        }
+      ],
+      "answer": "C",
+      "explanation": "悬空拆模的立足点稳固并配置防坠设施",
+      "rule_id": "XK-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-SC-05",
+      "scene": "formwork",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于模板安装与拆除，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在上下同一垂直面同时安装和拆除模板"
+        },
+        {
+          "key": "B",
+          "text": "直接站在模板支撑杆件上进行高处装模"
+        },
+        {
+          "key": "C",
+          "text": "拆下的模板和配件堆在临边且未固定"
+        },
+        {
+          "key": "D",
+          "text": "模板作业防护设施验收合格并记录后开工"
+        }
+      ],
+      "answer": "D",
+      "explanation": "模板作业防护设施验收合格并记录后开工",
+      "rule_id": "GZ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-SC-06",
+      "scene": "formwork",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行模板安装与拆除，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "模板作业前完成安全技术交底并记录"
+        },
+        {
+          "key": "B",
+          "text": "2m以上拆模时不设操作平台，只依靠安全带"
+        },
+        {
+          "key": "C",
+          "text": "模板尚未固定便把模板面当作通行踏板"
+        },
+        {
+          "key": "D",
+          "text": "把拆下的模板、余料直接向下抛送"
+        }
+      ],
+      "answer": "A",
+      "explanation": "模板作业前完成安全技术交底并记录",
+      "rule_id": "GZ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-TF-01",
+      "scene": "formwork",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（模板安装与拆除）：高处作业人员应根据作业的实际情况配备相应的高处作业安全防护用品，并应按规定正确佩戴和使用相应的安全防护用品、用具",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "高处作业人员应根据作业的实际情况配备相应的高处作业安全防护用品，并应按规定正确佩戴和使用相应的安全防护用品、用具",
+      "rule_id": "GZ-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-TF-02",
+      "scene": "formwork",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（模板安装与拆除）：拆下的模板短时堆在临边时，不固定也可以继续作业",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "对施工作业现场可能坠落的物料，应及时拆除或采取固定措施",
+      "rule_id": "GZ-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-TF-03",
+      "scene": "formwork",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（模板安装与拆除）：拆卸下的物料及余料和废料应及时清理运走，不得随意放置或向下丢弃",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "拆卸下的物料及余料和废料应及时清理运走，不得随意放置或向下丢弃",
+      "rule_id": "GZ-013",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "formwork-TF-04",
+      "scene": "formwork",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（模板安装与拆除）：小型扣件可以直接抛给下方接应人员",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "传递物料时不得抛掷",
+      "rule_id": "GZ-014",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-SC-01",
+      "scene": "curtain_wall",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于幕墙及外墙安装，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "外墙作业防护设施验收合格并记录后开工"
+        },
+        {
+          "key": "B",
+          "text": "幕墙安装时把工具临时放在外墙边缘或栏杆上"
+        },
+        {
+          "key": "C",
+          "text": "向下方人员直接抛送小型连接件"
+        },
+        {
+          "key": "D",
+          "text": "临边只拉警示带，不设置可靠防护栏杆"
+        }
+      ],
+      "answer": "A",
+      "explanation": "外墙作业防护设施验收合格并记录后开工",
+      "rule_id": "GZ-002",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-SC-02",
+      "scene": "curtain_wall",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行幕墙及外墙安装，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "临时拆除外墙防护后不采取替代措施"
+        },
+        {
+          "key": "B",
+          "text": "外墙作业前完成安全技术交底并记录"
+        },
+        {
+          "key": "C",
+          "text": "安全带挂在可移动的幕墙构件或临时栏杆上"
+        },
+        {
+          "key": "D",
+          "text": "可能坠落的幕墙材料未固定便开始安装"
+        }
+      ],
+      "answer": "B",
+      "explanation": "外墙作业前完成安全技术交底并记录",
+      "rule_id": "GZ-004",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-SC-03",
+      "scene": "curtain_wall",
+      "type": "single_choice",
+      "category": "prohibited_behavior",
+      "stem": "进行幕墙及外墙安装时，下列哪一项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "安全带挂在可移动的幕墙构件或临时栏杆上"
+        },
+        {
+          "key": "B",
+          "text": "可能坠落的幕墙材料未固定便开始安装"
+        },
+        {
+          "key": "C",
+          "text": "按现场风险正确配备和使用安全防护用品"
+        },
+        {
+          "key": "D",
+          "text": "幕墙安装时把工具临时放在外墙边缘或栏杆上"
+        }
+      ],
+      "answer": "C",
+      "explanation": "按现场风险正确配备和使用安全防护用品",
+      "rule_id": "GZ-008",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-SC-04",
+      "scene": "curtain_wall",
+      "type": "single_choice",
+      "category": "misconception",
+      "stem": "班前讨论幕墙及外墙安装安全措施时，哪一项说法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "向下方人员直接抛送小型连接件"
+        },
+        {
+          "key": "B",
+          "text": "临边只拉警示带，不设置可靠防护栏杆"
+        },
+        {
+          "key": "C",
+          "text": "临时拆除外墙防护后不采取替代措施"
+        },
+        {
+          "key": "D",
+          "text": "可能坠落的外墙材料及时清除或可靠固定"
+        }
+      ],
+      "answer": "D",
+      "explanation": "可能坠落的外墙材料及时清除或可靠固定",
+      "rule_id": "GZ-009",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-SC-05",
+      "scene": "curtain_wall",
+      "type": "single_choice",
+      "category": "basic_rule",
+      "stem": "关于幕墙及外墙安装，下列哪项符合安全要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "工具使用后随手放回工具袋"
+        },
+        {
+          "key": "B",
+          "text": "幕墙安装时把工具临时放在外墙边缘或栏杆上"
+        },
+        {
+          "key": "C",
+          "text": "临边只拉警示带，不设置可靠防护栏杆"
+        },
+        {
+          "key": "D",
+          "text": "可能坠落的幕墙材料未固定便开始安装"
+        }
+      ],
+      "answer": "A",
+      "explanation": "工具使用后随手放回工具袋",
+      "rule_id": "GZ-011",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-SC-06",
+      "scene": "curtain_wall",
+      "type": "single_choice",
+      "category": "scenario",
+      "stem": "某班组正在进行幕墙及外墙安装，现场复核时哪一项做法正确？",
+      "options": [
+        {
+          "key": "A",
+          "text": "临时拆除外墙防护后不采取替代措施"
+        },
+        {
+          "key": "B",
+          "text": "连接件和材料采用可靠方式传递，不向下抛掷"
+        },
+        {
+          "key": "C",
+          "text": "向下方人员直接抛送小型连接件"
+        },
+        {
+          "key": "D",
+          "text": "安全带挂在可移动的幕墙构件或临时栏杆上"
+        }
+      ],
+      "answer": "B",
+      "explanation": "连接件和材料采用可靠方式传递，不向下抛掷",
+      "rule_id": "GZ-014",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-TF-01",
+      "scene": "curtain_wall",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（幕墙及外墙安装）：坠落高度基准面2m及以上进行临边作业时，应在临空一侧设置防护栏杆，并应采用密目式安全立网或工具式栏板封闭",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "坠落高度基准面2m及以上进行临边作业时，应在临空一侧设置防护栏杆，并应采用密目式安全立网或工具式栏板封闭",
+      "rule_id": "LB-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-TF-02",
+      "scene": "curtain_wall",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（幕墙及外墙安装）：幕墙作业立足点不稳时，只依靠安全带也可以继续安装",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "悬空作业的立足处的设置应稳固，并应配置登高和防坠落装置和设施",
+      "rule_id": "XK-001",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-TF-03",
+      "scene": "curtain_wall",
+      "type": "true_false",
+      "category": "misconception",
+      "stem": "判断（幕墙及外墙安装）：悬挑的混凝土梁和檐、外墙和边柱等结构施工时，应搭设脚手架或操作平台",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "A",
+      "explanation": "悬挑的混凝土梁和檐、外墙和边柱等结构施工时，应搭设脚手架或操作平台",
+      "rule_id": "XK-018",
+      "review_status": "verified_default"
+    },
+    {
+      "id": "curtain_wall-TF-04",
+      "scene": "curtain_wall",
+      "type": "true_false",
+      "category": "scenario",
+      "stem": "判断（幕墙及外墙安装）：外墙门窗作业人员系好安全带后，可以站在窗樘上操作",
+      "options": [
+        {
+          "key": "A",
+          "text": "正确"
+        },
+        {
+          "key": "B",
+          "text": "错误"
+        }
+      ],
+      "answer": "B",
+      "explanation": "门窗作业时，应有防坠落措施，操作人员在无安全防护措施时，不得站立在樘子、阳台栏板上作业",
+      "rule_id": "XK-022",
+      "review_status": "verified_default"
+    }
+  ]
+}

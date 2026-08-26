@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>高处作业动态风险工作台</title>
+  <style>
+    :root { color-scheme:light; --ink:#18211c; --muted:#66736c; --line:#dce5df; --brand:#087a55; --bg:#f3f6f4; --red:#b8322b; --red-bg:#fff0ee; --yellow:#a86600; --yellow-bg:#fff7e5; --green:#15734d; --green-bg:#edf8f2; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+    main { width:min(1240px,calc(100% - 28px)); margin:26px auto 72px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; }
+    h1 { margin:0 0 7px; font-size:clamp(27px,4vw,42px); }
+    header p,.muted { color:var(--muted); }
+    nav { text-align:right; line-height:1.9; }
+    a { color:var(--brand); font-weight:700; text-decoration:none; }
+    .toolbar,.panel { background:white; border:1px solid var(--line); border-radius:15px; box-shadow:0 8px 28px rgba(27,68,47,.05); }
+    .toolbar { display:grid; grid-template-columns:180px 1fr auto; gap:10px; align-items:end; padding:16px; margin:18px 0; }
+    label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+    input,select,button { width:100%; min-width:0; min-height:42px; border:1px solid #c7d5cc; border-radius:9px; padding:9px 10px; font:inherit; background:white; }
+    button { border:0; background:var(--brand); color:white; font-weight:800; cursor:pointer; }
+    button.secondary { color:#175f44; background:#e9f3ed; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+    .metric { padding:16px 18px; }
+    .metric b { display:block; font-size:29px; margin-top:5px; }
+    .metric.red b { color:var(--red); } .metric.yellow b { color:var(--yellow); } .metric.green b { color:var(--green); }
+    .filters { display:flex; gap:9px; flex-wrap:wrap; padding:13px 16px; margin-bottom:14px; }
+    .filters select { width:auto; min-width:150px; }
+    #items { display:grid; gap:14px; }
+    .risk-card { border-left:7px solid var(--green); padding:18px; }
+    .risk-card.red { border-left-color:var(--red); } .risk-card.yellow { border-left-color:var(--yellow); }
+    .card-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
+    .card-head h2 { margin:0 0 6px; font-size:21px; }
+    .level { border-radius:999px; padding:5px 11px; font-weight:900; white-space:nowrap; }
+    .red .level { color:var(--red); background:var(--red-bg); } .yellow .level { color:var(--yellow); background:var(--yellow-bg); } .green .level { color:var(--green); background:var(--green-bg); }
+    .tags { margin:9px 0; }
+    .tag { display:inline-block; margin:3px 5px 0 0; padding:4px 8px; border-radius:999px; background:#eef4f0; color:#315c49; font-size:13px; }
+    .columns { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:13px; }
+    .box { min-width:0; border:1px solid var(--line); border-radius:11px; padding:13px; overflow-wrap:anywhere; }
+    .box h3 { margin:0 0 8px; font-size:15px; }
+    ul { margin:0; padding-left:21px; line-height:1.7; }
+    .trigger { margin:8px 0; padding:10px; border-radius:9px; background:#f5f7f6; line-height:1.55; }
+    .trigger.red { background:var(--red-bg); } .trigger.yellow { background:var(--yellow-bg); }
+    details { margin-top:10px; } summary { cursor:pointer; font-weight:700; }
+    .question { margin:8px 0; padding:10px; background:#f5f7f6; border-radius:9px; line-height:1.6; }
+    .empty { text-align:center; padding:60px 15px; color:var(--muted); }
+    .error { color:var(--red); min-height:24px; }
+    @media(max-width:900px) { .toolbar { grid-template-columns:1fr 1fr; } .metrics { grid-template-columns:1fr 1fr; } .columns { grid-template-columns:1fr; } }
+    @media(max-width:560px) { header { display:block; } nav { text-align:left; margin-top:10px; } .toolbar,.metrics { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>动态风险工作台</h1><p>聚合任务、天气、方案审计和学习记录，给出透明的红黄绿优先级与现场干预建议。</p></div>
+      <nav><a href="/worker-assistant">高处小安</a>　<a href="/project-knowledge">知识库</a>　<a href="/">方案审计</a></nav>
+    </header>
+    <section class="toolbar">
+      <label>作业日期<input id="date" type="date"></label>
+      <label>历史评估版本<select id="history"><option value="">最新版本</option></select></label>
+      <button id="load" class="secondary" type="button">查看</button>
+      <button id="evaluate" type="button">刷新动态评估</button>
+    </section>
+    <section id="metrics" class="metrics"></section>
+    <section class="panel filters">
+      <select id="level"><option value="">全部等级</option><option value="red">红色</option><option value="yellow">黄色</option><option value="green">绿色</option></select>
+      <select id="team"><option value="">全部班组</option></select>
+      <span id="meta" class="muted"></span>
+    </section>
+    <div id="items"><div class="panel empty">正在读取今日评估……</div></div>
+    <p id="error" class="error"></p>
+  </main>
+  <script>
+    const $=value=>document.querySelector(value); let current=null;
+    const levelName={red:'红色',yellow:'黄色',green:'绿色'};
+    const timeName={morning:'上午',midday:'中午',afternoon:'下午',evening:'晚上',all_day:'全天'};
+    function localDate(){const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;}
+    async function json(url,options){const response=await fetch(url,options);if(!response.ok){let detail=`请求失败（${response.status}）`;try{detail=(await response.json()).detail||detail}catch{}throw new Error(detail)}return response.json();}
+    function metric(label,value,className=''){const node=document.createElement('div');node.className=`panel metric ${className}`;const text=document.createElement('span');text.textContent=label;const number=document.createElement('b');number.textContent=value;node.append(text,number);return node;}
+    function mask(value){if(!value)return '未填写';if(value.length<=2)return `${value[0]}*`;return `${value[0]}${'*'.repeat(Math.min(3,value.length-2))}${value.at(-1)}`;}
+    function renderMetrics(run){const target=$('#metrics');target.replaceChildren(metric('纳入任务',run.task_count),metric('红色',run.red_count,'red'),metric('黄色',run.yellow_count,'yellow'),metric('绿色',run.green_count,'green'));}
+    function node(tag,text,className=''){const value=document.createElement(tag);value.textContent=text;if(className)value.className=className;return value;}
+    function listBox(title,items){const box=node('div','', 'box');box.append(node('h3',title));const list=document.createElement('ul');for(const text of items.length?items:['暂无'])list.append(node('li',text));box.append(list);return box;}
+    function renderItem(item){const card=node('article','',`panel risk-card ${item.risk_level}`);const head=node('div','', 'card-head');const left=node('div','');left.append(node('h2',`${item.normalized_task||item.work_content} · ${item.work_floor}${item.work_location}`));left.append(node('div',`${item.scheduled_date} ${timeName[item.time_window]||item.work_time}｜${item.team_ref||'未填写班组'}｜工人 ${mask(item.worker_ref)}`,'muted'));const badge=node('span',levelName[item.risk_level],'level');head.append(left,badge);card.append(head,node('p',item.summary));const tags=node('div','', 'tags');for(const scene of item.scenes)tags.append(node('span',scene,'tag'));card.append(tags);
+      const columns=node('div','', 'columns');const triggers=node('div','', 'box');triggers.append(node('h3','触发因素与证据'));for(const entry of item.triggers){const block=node('div','',`trigger ${entry.level}`);block.append(node('b',entry.title),node('div',entry.detail));triggers.append(block)}columns.append(triggers,listBox('现场干预与班前交底',item.interventions));card.append(columns);
+      const questions=document.createElement('details');questions.append(node('summary',`针对性复习题（${item.review_questions.length}）`));for(const [index,q] of item.review_questions.entries()){const block=node('div',`${index+1}. ${q.stem}`,'question');for(const option of q.options)block.append(node('div',`${option.key}. ${option.text}`));questions.append(block)}card.append(questions);
+      const evidence=document.createElement('details');evidence.append(node('summary',`证据来源（${item.evidences.length}）`));for(const entry of item.evidences.slice(0,16)){const block=node('div','', 'question');block.append(node('b',`【${entry.evidence_type||'记录'}】${entry.title||entry.source_id||''}`),node('div',entry.quote||''),node('small',entry.location||'', 'muted'));evidence.append(block)}card.append(evidence);return card;}
+    function render(run){current=run;renderMetrics(run);$('#meta').textContent=`版本 ${run.id.slice(0,8)} · ${new Date(run.created_at).toLocaleString()} · ${run.trigger_type}`;const teams=[...new Set(run.items.map(item=>item.team_ref).filter(Boolean))].sort();const team=$('#team'),selected=team.value;team.replaceChildren(new Option('全部班组',''));for(const value of teams)team.append(new Option(value,value));team.value=teams.includes(selected)?selected:'';renderItems();}
+    function renderItems(){const target=$('#items');target.replaceChildren();if(!current){target.append(node('div','该日期尚无评估记录，请点击“刷新动态评估”。','panel empty'));return}const level=$('#level').value,team=$('#team').value;const items=current.items.filter(item=>(!level||item.risk_level===level)&&(!team||item.team_ref===team));if(!items.length){target.append(node('div','当前筛选条件下没有任务。','panel empty'));return}for(const item of items)target.append(renderItem(item));}
+    async function loadHistory(){const runs=await json('/dynamic-risks/runs?limit=100');const target=$('#history'),selected=current?.id||target.value;target.replaceChildren(new Option('最新版本',''));for(const run of runs.filter(item=>item.assessment_date===$('#date').value)){const option=new Option(`${new Date(run.created_at).toLocaleString()}｜红${run.red_count} 黄${run.yellow_count} 绿${run.green_count}`,run.id);target.append(option)}if([...target.options].some(item=>item.value===selected))target.value=selected;}
+    async function load(){try{$('#error').textContent='';const id=$('#history').value;const run=id?await json(`/dynamic-risks/runs/${id}`):await json(`/dynamic-risks/latest?assessment_date=${$('#date').value}`);if(run)render(run);else{current=null;$('#metrics').replaceChildren();renderItems()}await loadHistory()}catch(error){$('#error').textContent=error.message}}
+    async function evaluate(){const button=$('#evaluate');button.disabled=true;try{const before=current?.id;const result=await json('/dynamic-risks/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({assessment_date:$('#date').value,trigger_type:'data_refresh',refresh_weather:true})});render(result);if(!result.version_created&&result.id===before)$('#meta').textContent+=' · 数据未变化，沿用当前版本';await loadHistory()}catch(error){$('#error').textContent=error.message}finally{button.disabled=false}}
+    $('#date').value=localDate();$('#load').addEventListener('click',load);$('#evaluate').addEventListener('click',evaluate);$('#level').addEventListener('change',renderItems);$('#team').addEventListener('change',renderItems);$('#date').addEventListener('change',()=>{$('#history').value='';load()});load();
+  </script>
+</body>
+</html>

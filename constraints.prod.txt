@@ -1,0 +1,13 @@
+# 已在当前完整回归环境验证的生产直接依赖版本。
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic-settings==2.15.0
+python-multipart==0.0.32
+python-docx==1.2.0
+openpyxl==3.1.5
+PyMuPDF==1.28.2
+chromadb==1.5.9
+openai==2.54.0
+langchain-core==1.6.0
+langgraph==1.2.11
+mcp==2.0.0

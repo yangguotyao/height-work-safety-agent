@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>高处小安 · 每日任务风险卡</title>
+  <style>
+    :root { color-scheme:light; --ink:#17211c; --muted:#66736c; --line:#dbe5df; --brand:#087a55; --soft:#edf6f1; --warn:#b56f00; --stop:#b62f28; --bg:#f4f7f5; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+    main { width:min(1120px,calc(100% - 28px)); margin:28px auto 72px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:20px; }
+    h1 { margin:0 0 8px; font-size:clamp(27px,4vw,42px); }
+    header p { margin:0; color:var(--muted); }
+    a { color:var(--brand); font-weight:700; text-decoration:none; }
+    .layout { display:grid; grid-template-columns:minmax(330px,.9fr) minmax(420px,1.25fr); gap:18px; align-items:start; }
+    .panel { background:white; border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(20,60,40,.05); }
+    .settings { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+    input, select, textarea, button { width:100%; border:1px solid #cbd7cf; border-radius:9px; padding:10px 11px; font:inherit; background:white; }
+    textarea { min-height:82px; resize:vertical; }
+    button { border:0; background:var(--brand); color:white; font-weight:800; cursor:pointer; min-height:44px; }
+    button.secondary { background:#e8f2ed; color:#176044; margin-top:9px; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .chat { display:grid; gap:10px; min-height:250px; max-height:430px; overflow:auto; padding:4px 2px 14px; }
+    .bubble { max-width:88%; padding:11px 13px; border-radius:13px; line-height:1.65; white-space:pre-wrap; }
+    .bubble.assistant { background:var(--soft); justify-self:start; }
+    .bubble.user { background:#166c50; color:white; justify-self:end; }
+    .draft { margin:12px 0; padding:12px; border:1px dashed #b8cabf; border-radius:10px; color:#3f5148; font-size:14px; line-height:1.7; }
+    .hint { color:var(--muted); font-size:13px; line-height:1.6; }
+    #riskCard { display:grid; gap:14px; }
+    .empty { color:var(--muted); padding:50px 12px; text-align:center; }
+    .card-head { border-bottom:1px solid var(--line); padding-bottom:14px; }
+    .card-head h2 { margin:0 0 6px; }
+    .tag { display:inline-block; margin:5px 5px 0 0; padding:4px 9px; border-radius:999px; background:var(--soft); color:#1d6249; font-size:13px; }
+    .section { border:1px solid var(--line); border-radius:12px; padding:15px; }
+    .section h3 { margin:0 0 9px; font-size:16px; }
+    ul { margin:0; padding-left:21px; line-height:1.75; }
+    .weather.stop { border-left:5px solid var(--stop); }
+    .weather.warning, .weather.confirm { border-left:5px solid var(--warn); }
+    .source { margin-top:9px; font-size:13px; color:var(--muted); }
+    details { margin-top:8px; }
+    details p { white-space:pre-wrap; line-height:1.65; }
+    .notice { background:#fff8e8; border-color:#ead09a; }
+    .error { color:#b3261e; }
+    .learning { margin-top:18px; }
+    .learning-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .learning h2 { margin:0 0 6px; }
+    .qa-log { display:grid; gap:10px; margin:12px 0; max-height:360px; overflow:auto; }
+    .qa-item, .quiz-question, .record-card { border:1px solid var(--line); border-radius:12px; padding:14px; }
+    .qa-item p { white-space:pre-wrap; line-height:1.65; margin:7px 0; }
+    .quiz-question { margin:10px 0; }
+    .quiz-question strong { display:block; line-height:1.6; margin-bottom:8px; }
+    .quiz-option { display:flex; grid-template-columns:none; align-items:flex-start; gap:8px; color:var(--ink); font-size:14px; margin:7px 0; }
+    .quiz-option input { width:auto; margin-top:3px; }
+    .correct { border-left:5px solid var(--brand); }
+    .incorrect { border-left:5px solid var(--stop); }
+    .record-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+    .record-card b { display:block; font-size:24px; color:var(--brand); }
+    @media (max-width:850px) { .layout,.learning-grid { grid-template-columns:1fr; } header { display:block; } header a { display:inline-block; margin-top:10px; } }
+    @media (max-width:520px) { .settings { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>高处小安</h1>
+        <p>用聊天说明今天的作业，信息完整后生成有规范、方案和事故证据的任务风险卡。</p>
+      </div>
+      <nav><a href="/">← 返回方案审计</a>　<a href="/project-knowledge">项目安全知识库</a>　<a href="/daily-risk">动态风险工作台 →</a></nav>
+    </header>
+    <div class="layout">
+      <section class="panel">
+        <div class="settings">
+          <label>工人标识（选填）<input id="workerRef" placeholder="如：工人01"></label>
+          <label>班组标识（选填）<input id="teamRef" placeholder="如：模板班组"></label>
+          <label>解析模式
+            <select id="useLlm"><option value="true">外部大模型</option><option value="false">本地确定性演示</option></select>
+          </label>
+          <label>关联审计ID（选填）<input id="auditRunId" placeholder="默认最新已完成审计"></label>
+        </div>
+        <div id="chat" class="chat">
+          <div class="bubble assistant">你好，请告诉我今天要做什么。例如：“今天下午在12层拆除外墙模板”。</div>
+        </div>
+        <div id="draft" class="draft">尚未识别任务信息。</div>
+        <form id="messageForm">
+          <label>任务消息<textarea id="message" required placeholder="直接描述任务，或补充我询问的信息"></textarea></label>
+          <button id="send" type="submit">发送</button>
+        </form>
+        <button id="newTask" class="secondary" type="button">开始新任务</button>
+        <p class="hint">系统会按作业场景追问必要信息：脚手架搭拆重点确认类型和时间，模板、洞口、吊篮等任务再确认位置与楼层。无法确认的内容不会猜测。</p>
+        <p id="error" class="error"></p>
+      </section>
+      <section class="panel">
+        <div id="riskCard"><div class="empty">任务信息完整后，这里会显示风险卡。</div></div>
+      </section>
+    </div>
+    <section class="panel learning">
+      <h2>安全学习</h2>
+      <p class="hint">安全问答会显示规范证据；测验固定为3道单选题和2道判断题，不设置及格线。请先填写工人标识，任务完成后会自动按当前施工场景出题。</p>
+      <div class="learning-grid">
+        <div>
+          <h3>安全问答</h3>
+          <div id="qaLog" class="qa-log"><div class="empty">可以询问安全带挂点、临边防护、天气限制、脚手架拆除顺序等问题。</div></div>
+          <form id="qaForm">
+            <label>安全问题<textarea id="safetyQuestion" required placeholder="例如：拆脚手架时连墙件可以先拆吗？"></textarea></label>
+            <button id="askSafety" type="submit">提问</button>
+          </form>
+        </div>
+        <div>
+          <h3>场景测验与学习记录</h3>
+          <button id="startQuiz" type="button">开始5题测验</button>
+          <button id="refreshRecord" class="secondary" type="button">查看个人学习记录</button>
+          <div id="quizBox"><div class="empty">完成每日任务后，将优先按该任务场景出题。</div></div>
+          <div id="learningRecord"></div>
+        </div>
+      </div>
+      <p id="learningError" class="error"></p>
+    </section>
+  </main>
+  <script>
+    let sessionId=null;
+    let currentTaskId=null;
+    let currentQuiz=null;
+    const chat=document.querySelector('#chat');
+    const draftBox=document.querySelector('#draft');
+    const riskCard=document.querySelector('#riskCard');
+    const form=document.querySelector('#messageForm');
+    const send=document.querySelector('#send');
+    const errorBox=document.querySelector('#error');
+
+    function bubble(role,text) {
+      const node=document.createElement('div'); node.className=`bubble ${role}`; node.textContent=text;
+      chat.append(node); chat.scrollTop=chat.scrollHeight; return node;
+    }
+    function renderDraft(draft,missing) {
+      const value=key=>draft?.[key] || '待补充';
+      const labels={work_content:'作业内容',location:'位置',floor:'楼层/高度',work_time:'时间',equipment_type:'脚手架类型'};
+      const missingText=missing.map(item=>labels[item]||item).join('、');
+      const equipment=(draft?.equipment_type || missing.includes('equipment_type'))?`\n脚手架类型：${value('equipment_type')}`:'';
+      draftBox.textContent=`作业内容：${value('work_content')}\n位置：${value('location')}｜楼层/高度：${value('floor')}｜时间：${value('work_time')}${equipment}\n缺少：${missing.length?missingText:'无'}`;
+    }
+    function section(title,items,className='') {
+      const box=document.createElement('div'); box.className=`section ${className}`;
+      const heading=document.createElement('h3'); heading.textContent=title; box.append(heading);
+      const list=document.createElement('ul');
+      for(const item of items.length?items:['暂无']) { const li=document.createElement('li'); li.textContent=item; list.append(li); }
+      box.append(list); return box;
+    }
+    function renderCard(card) {
+      riskCard.replaceChildren();
+      const head=document.createElement('div'); head.className='card-head';
+      const area=card.floor==='不按楼层定位'?card.location:`${card.floor}${card.location}`;
+      const title=document.createElement('h2'); title.textContent=`${card.work_time} · ${area}`;
+      const task=document.createElement('div'); task.textContent=card.equipment_type?`${card.work_content} · ${card.equipment_type}`:card.work_content; head.append(title,task);
+      for(const scene of card.scenes) { const tag=document.createElement('span'); tag.className='tag'; tag.textContent=scene; head.append(tag); }
+      riskCard.append(head);
+      riskCard.append(section('本次作业主要风险',card.main_risks));
+      riskCard.append(section('作业前需要确认',card.pre_job_checks));
+      riskCard.append(section('禁止行为与事故警示',card.prohibited_behaviors));
+      const weatherItems=[...new Set([card.weather.summary,...card.weather_warnings.map(x=>x.message)])];
+      const weatherClass=card.weather_warnings.some(x=>x.level==='stop')?'weather stop':(card.weather_warnings.some(x=>x.level==='warning')?'weather warning':'weather confirm');
+      riskCard.append(section('天气与环境提醒',weatherItems,weatherClass));
+      riskCard.append(section('待人工确认',card.human_confirmations));
+      const cases=document.createElement('div'); cases.className='section';
+      const casesTitle=document.createElement('h3'); casesTitle.textContent='相似事故案例'; cases.append(casesTitle);
+      for(const item of card.similar_accidents) {
+        const detail=document.createElement('details'); const summary=document.createElement('summary');
+        summary.textContent=`${item.case_id} · ${item.title}`; const body=document.createElement('p');
+        body.textContent=`作业：${item.task}\n场景：${item.scene}\n后果：${item.consequence}\n风险：${item.risk_factors.join('；')||'报告未单列'}\n措施：${item.measures.join('；')||'报告未单列'}`;
+        const link=document.createElement('a'); link.href=item.source_url; link.target='_blank'; link.rel='noreferrer'; link.textContent=`来源：${item.source_agency}`;
+        detail.append(summary,body,link); cases.append(detail);
+      }
+      if(!card.similar_accidents.length) { const p=document.createElement('p'); p.textContent='未检索到足够相关的事故案例。'; cases.append(p); }
+      riskCard.append(cases);
+      const evidence=document.createElement('details'); evidence.className='section';
+      const evidenceTitle=document.createElement('summary'); evidenceTitle.textContent=`查看 ${card.evidences.length} 条证据来源`; evidence.append(evidenceTitle);
+      for(const item of card.evidences) { const p=document.createElement('p'); p.textContent=`【${item.evidence_type}】${item.title}\n${item.quote}`; evidence.append(p); }
+      riskCard.append(evidence);
+      riskCard.append(section('安全边界',[card.safety_notice],'notice'));
+    }
+    form.addEventListener('submit',async event=>{
+      event.preventDefault(); errorBox.textContent=''; send.disabled=true;
+      const message=document.querySelector('#message').value.trim(); bubble('user',message);
+      const pending=bubble('assistant','正在理解任务，请稍候…');
+      try {
+        const body={message,use_llm:document.querySelector('#useLlm').value==='true',worker_ref:document.querySelector('#workerRef').value.trim(),team_ref:document.querySelector('#teamRef').value.trim(),audit_run_id:document.querySelector('#auditRunId').value.trim()||null};
+        if(sessionId) body.session_id=sessionId;
+        const response=await fetch('/worker-assistant/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const data=await response.json(); if(!response.ok) throw new Error(data.detail || '发送失败');
+        sessionId=data.session_id; pending.remove(); bubble('assistant',data.assistant_message); renderDraft(data.draft,data.missing_fields);
+        if(data.risk_card) { renderCard(data.risk_card); currentTaskId=data.task_id; }
+        document.querySelector('#message').value='';
+      } catch(error) { pending.remove(); errorBox.textContent=error.message || String(error); }
+      finally { send.disabled=false; }
+    });
+    document.querySelector('#newTask').addEventListener('click',()=>{
+      sessionId=null; currentTaskId=null; chat.replaceChildren(); bubble('assistant','请告诉我新的每日作业任务。');
+      draftBox.textContent='尚未识别任务信息。'; riskCard.innerHTML='<div class="empty">任务信息完整后，这里会显示风险卡。</div>'; errorBox.textContent='';
+    });
+
+    function workerRefRequired() {
+      const workerRef=document.querySelector('#workerRef').value.trim();
+      if(!workerRef) throw new Error('安全学习需要先填写工人标识。');
+      return workerRef;
+    }
+    function renderQa(item) {
+      const log=document.querySelector('#qaLog'); if(log.querySelector('.empty')) log.replaceChildren();
+      const box=document.createElement('div'); box.className='qa-item';
+      const q=document.createElement('strong'); q.textContent=`问：${item.question}`;
+      const a=document.createElement('p'); a.style.whiteSpace='pre-wrap';
+      a.textContent=item.answer.replace(/\*\*/g,''); box.append(q,a);
+      if(item.evidences.length) {
+        const details=document.createElement('details'); const summary=document.createElement('summary');
+        summary.textContent=`查看 ${item.evidences.length} 条规范证据`; details.append(summary);
+        for(const evidence of item.evidences) { const p=document.createElement('p'); p.textContent=`${evidence.title} · ${evidence.location}\n${evidence.quote}`; details.append(p); }
+        box.append(details);
+      }
+      log.prepend(box);
+    }
+    document.querySelector('#qaForm').addEventListener('submit',async event=>{
+      event.preventDefault(); const button=document.querySelector('#askSafety'); const error=document.querySelector('#learningError'); error.textContent=''; button.disabled=true;
+      try {
+        const body={worker_ref:workerRefRequired(),question:document.querySelector('#safetyQuestion').value.trim(),task_id:currentTaskId,use_llm:document.querySelector('#useLlm').value==='true'};
+        const response=await fetch('/worker-assistant/qa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const data=await response.json(); if(!response.ok) throw new Error(data.detail||'提问失败'); renderQa(data); document.querySelector('#safetyQuestion').value=''; await loadLearningRecord();
+      } catch(e) { error.textContent=e.message||String(e); } finally { button.disabled=false; }
+    });
+    function renderQuiz(attempt) {
+      currentQuiz=attempt; const box=document.querySelector('#quizBox'); box.replaceChildren();
+      const title=document.createElement('p'); title.innerHTML=`<strong>${attempt.scene_name}</strong> · 5题`; box.append(title);
+      const form=document.createElement('form'); form.id='quizForm';
+      attempt.questions.forEach((item,index)=>{
+        const q=document.createElement('div'); q.className='quiz-question'; q.dataset.id=item.id;
+        const stem=document.createElement('strong'); stem.textContent=`${index+1}. [${item.type==='single_choice'?'单选':'判断'}] ${item.stem}`; q.append(stem);
+        item.options.forEach(option=>{ const label=document.createElement('label'); label.className='quiz-option'; const input=document.createElement('input'); input.type='radio'; input.name=`q-${item.id}`; input.value=option.key; label.append(input,document.createTextNode(`${option.key}. ${option.text}`)); q.append(label); }); form.append(q);
+      });
+      const submit=document.createElement('button'); submit.type='submit'; submit.textContent='提交本次作答'; form.append(submit); box.append(form);
+      form.addEventListener('submit',submitQuiz);
+    }
+    async function startQuiz() {
+      const button=document.querySelector('#startQuiz'); const error=document.querySelector('#learningError'); error.textContent=''; button.disabled=true;
+      try { const body={worker_ref:workerRefRequired(),task_id:currentTaskId}; const response=await fetch('/worker-assistant/quizzes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const data=await response.json(); if(!response.ok) throw new Error(data.detail||'生成测验失败'); renderQuiz(data); }
+      catch(e) { error.textContent=e.message||String(e); } finally { button.disabled=false; }
+    }
+    async function submitQuiz(event) {
+      event.preventDefault(); const quizForm=event.currentTarget; const error=document.querySelector('#learningError'); error.textContent='';
+      try {
+        const answers=currentQuiz.questions.map(item=>{ const checked=document.querySelector(`input[name="q-${item.id}"]:checked`); if(!checked) throw new Error('请完成全部5道题后再提交。'); return {question_id:item.id,answer:checked.value}; });
+        const response=await fetch(`/worker-assistant/quizzes/${currentQuiz.id}/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers})}); const data=await response.json(); if(!response.ok) throw new Error(data.detail||'提交失败');
+        for(const result of data.answers) { const node=document.querySelector(`.quiz-question[data-id="${result.question_id}"]`); node.classList.add(result.is_correct?'correct':'incorrect'); const p=document.createElement('p'); p.className='source'; p.textContent=`${result.is_correct?'回答正确':'回答错误，正确答案：'+result.correct_answer}\n解析：${result.explanation}\n依据：${result.evidence.standard_code} 第${result.evidence.clause}条`; node.append(p); }
+        quizForm.querySelector('button').remove(); await loadLearningRecord();
+      } catch(e) { error.textContent=e.message||String(e); }
+    }
+    async function loadLearningRecord() {
+      const workerRef=workerRefRequired(); const response=await fetch(`/worker-assistant/workers/${encodeURIComponent(workerRef)}/learning-records`); const data=await response.json(); if(!response.ok) throw new Error(data.detail||'读取学习记录失败');
+      const box=document.querySelector('#learningRecord'); box.replaceChildren(); const grid=document.createElement('div'); grid.className='record-grid';
+      for(const [label,value] of [['问答记录',data.qa_records.length],['测验次数',data.quiz_attempts.length],['待复习错题',data.active_wrong_count]]) { const card=document.createElement('div'); card.className='record-card'; card.innerHTML=`<b>${value}</b>${label}`; grid.append(card); } box.append(grid);
+      if(data.recommendations.length) { const p=document.createElement('p'); p.className='hint'; p.textContent=`推荐复习：${data.recommendations.map(item=>item.scene_name+'｜'+item.stem).join('；')}`; box.append(p); }
+    }
+    document.querySelector('#startQuiz').addEventListener('click',startQuiz);
+    document.querySelector('#refreshRecord').addEventListener('click',()=>loadLearningRecord().catch(e=>document.querySelector('#learningError').textContent=e.message||String(e)));
+  </script>
+</body>
+</html>

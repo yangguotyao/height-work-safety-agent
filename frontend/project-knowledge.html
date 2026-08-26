@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>项目安全知识库</title>
+  <style>
+    :root { color-scheme:light; --ink:#17231d; --muted:#66746c; --line:#dce6df; --brand:#087a55; --brand-soft:#e8f4ee; --bg:#f3f7f4; --warn:#ad6d00; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+    main { width:min(1240px,calc(100% - 28px)); margin:28px auto 72px; }
+    header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:20px; }
+    h1,h2,h3 { margin-top:0; }
+    h1 { margin-bottom:8px; font-size:clamp(28px,4vw,42px); letter-spacing:-1px; }
+    header p,.muted { color:var(--muted); }
+    header p { margin:0; }
+    nav { display:flex; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
+    a { color:var(--brand); font-weight:700; text-decoration:none; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 10px 28px rgba(24,70,46,.05); }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(140px,1fr)); gap:12px; margin-bottom:18px; }
+    .metric { background:linear-gradient(145deg,#edf7f1,#f9fcfa); border:1px solid #d8e9df; border-radius:14px; padding:15px; }
+    .metric span { color:var(--muted); font-size:13px; }
+    .metric strong { display:block; margin-top:5px; font-size:25px; }
+    .dashboard { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+    .rank-list { display:grid; gap:9px; }
+    .rank-item { display:flex; justify-content:space-between; gap:14px; border-bottom:1px solid #edf1ee; padding-bottom:8px; }
+    .rank-item:last-child { border:0; padding-bottom:0; }
+    .count { color:var(--brand); font-weight:800; }
+    .search-form { display:grid; grid-template-columns:minmax(280px,1fr) 190px 180px auto; gap:10px; align-items:end; }
+    label { display:grid; gap:7px; font-size:13px; color:var(--muted); }
+    input,select,button { min-height:43px; border:1px solid #cbd8d0; border-radius:9px; padding:9px 11px; background:#fff; font:inherit; }
+    button { border:0; background:var(--brand); color:#fff; font-weight:800; cursor:pointer; }
+    button.secondary { background:#eef4f0; color:#245340; border:1px solid #d2e1d8; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .check { display:flex; align-items:center; gap:7px; margin-top:10px; color:var(--muted); font-size:13px; }
+    .check input { min-height:auto; }
+    .workspace { display:grid; grid-template-columns:minmax(340px,.85fr) minmax(500px,1.4fr); gap:16px; margin-top:16px; align-items:start; }
+    .result-list { display:grid; gap:10px; max-height:720px; overflow:auto; padding-right:3px; }
+    .entity-card { width:100%; text-align:left; color:var(--ink); background:#fff; border:1px solid var(--line); padding:14px; border-radius:12px; }
+    .entity-card:hover { border-color:#6ea98e; background:#fbfefc; }
+    .entity-card strong { display:block; margin:6px 0; line-height:1.45; }
+    .entity-card p { margin:0; color:var(--muted); line-height:1.55; font-size:13px; }
+    .entity-card .summary { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+    .tag { display:inline-block; border-radius:999px; background:var(--brand-soft); color:#236248; padding:3px 8px; font-size:12px; }
+    .tag.test { background:#fff1d8; color:var(--warn); }
+    .graph-wrap { border:1px solid var(--line); border-radius:13px; overflow:hidden; background:#fbfdfb; }
+    #graphSvg { display:block; width:100%; min-height:390px; }
+    .graph-line { stroke:#a7bbb0; stroke-width:1.4; }
+    .graph-label { fill:#687870; font-size:10px; text-anchor:middle; }
+    .graph-node rect { fill:#fff; stroke:#86aa98; stroke-width:1.4; rx:9; }
+    .graph-node.center rect { fill:#dff2e7; stroke:#087a55; stroke-width:2; }
+    .graph-node text { fill:#1c3528; font-size:11px; text-anchor:middle; pointer-events:none; }
+    .graph-node { cursor:pointer; }
+    .detail-head { margin-bottom:13px; }
+    .detail-head h2 { margin:7px 0; font-size:21px; }
+    .detail-head p { margin:0; line-height:1.65; color:var(--muted); }
+    .relations { display:grid; gap:9px; margin-top:14px; }
+    .relation { border-left:3px solid #7aa98f; background:#f7faf8; padding:10px 12px; border-radius:7px; }
+    .relation b { display:block; margin-bottom:4px; }
+    .relation p { margin:0; font-size:13px; line-height:1.55; color:var(--muted); white-space:pre-wrap; }
+    .worker { margin-top:18px; }
+    .worker-form { display:grid; grid-template-columns:minmax(240px,440px) 140px; gap:10px; align-items:end; }
+    .worker-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px; }
+    .worker-section { margin-top:14px; }
+    .worker-section ul { margin:8px 0 0; padding-left:20px; line-height:1.75; }
+    .empty { color:var(--muted); text-align:center; padding:34px 12px; border:1px dashed #cad9d0; border-radius:12px; }
+    .error { color:#b3261e; }
+    @media (max-width:900px) { header { display:block; } nav { justify-content:flex-start; margin-top:12px; } .metrics,.dashboard,.worker-summary { grid-template-columns:1fr 1fr; } .search-form,.workspace { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .metrics,.dashboard,.worker-summary,.worker-form { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>项目安全知识库</h1>
+        <p>把方案审计、每日任务、规范、事故和学习记录关联成可查询、可追溯的项目知识。</p>
+      </div>
+      <nav><a href="/">方案审计</a><a href="/worker-assistant">高处小安</a><a href="/daily-risk">动态风险</a></nav>
+    </header>
+
+    <section id="metrics" class="metrics" aria-label="知识库概览"></section>
+    <section class="dashboard">
+      <article class="panel"><h3>高频场景</h3><div id="topScenes" class="rank-list"></div></article>
+      <article class="panel"><h3>高频任务风险</h3><div id="topRisks" class="rank-list"></div></article>
+      <article class="panel"><h3>集中错题</h3><div id="topWrong" class="rank-list"></div></article>
+    </section>
+
+    <section class="panel">
+      <h2>统一知识查询</h2>
+      <form id="searchForm" class="search-form">
+        <label>关键词
+          <input id="query" placeholder="例如：脚手架拆除、安全带挂点、模板拆除" required>
+        </label>
+        <label>知识类型
+          <select id="entityType">
+            <option value="">全部类型</option><option value="scene">作业场景</option>
+            <option value="rule">安全规则</option><option value="standard">规范标准</option>
+            <option value="accident">事故案例</option><option value="audit_issue">审计问题</option>
+            <option value="task">每日任务</option><option value="risk">风险主题</option>
+            <option value="unsafe_behavior">不安全行为</option><option value="measure">安全措施</option>
+            <option value="qa">安全问答</option><option value="quiz_question">测验题目</option>
+          </select>
+        </label>
+        <label>场景筛选
+          <input id="scene" placeholder="例如：施工脚手架">
+        </label>
+        <button type="submit">查询知识</button>
+      </form>
+      <label class="check"><input id="includeTest" type="checkbox"> 包含演示验收产生的测试数据</label>
+      <div id="searchStatus" class="muted" style="margin-top:12px">输入关键词开始查询。</div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel">
+        <h2>查询结果</h2>
+        <div id="results" class="result-list"><div class="empty">尚未查询</div></div>
+      </section>
+      <section class="panel">
+        <div id="detail"><div class="empty">选择一个知识实体，查看一层关联和证据。</div></div>
+      </section>
+    </section>
+
+    <section class="panel worker">
+      <h2>个人知识记录</h2>
+      <p class="muted">本页不会展示工人名单。只有输入完整工人标识后，才查询对应的个人任务和学习记录。</p>
+      <form id="workerForm" class="worker-form">
+        <label>工人标识
+          <input id="workerRef" placeholder="请输入完整工人标识" required>
+        </label>
+        <button type="submit">查询个人记录</button>
+      </form>
+      <div id="workerResult"></div>
+    </section>
+  </main>
+
+  <script>
+    const typeNames={project:'项目',document:'施工方案',audit:'审计任务',audit_issue:'审计问题',scene:'作业场景',rule:'安全规则',standard:'规范标准',accident:'事故案例',risk:'风险主题',unsafe_behavior:'不安全行为',measure:'安全措施',task:'每日任务',worker:'工人标识',qa:'安全问答',quiz:'测验记录',quiz_question:'测验题目',dynamic_assessment:'动态评估',dynamic_risk:'动态风险',intervention:'干预措施'};
+    const metrics=document.querySelector('#metrics');
+    const results=document.querySelector('#results');
+    const detail=document.querySelector('#detail');
+    const searchStatus=document.querySelector('#searchStatus');
+
+    async function getJson(url) {
+      const response=await fetch(url); const data=await response.json();
+      if(!response.ok) throw new Error(data.detail||'请求失败'); return data;
+    }
+    function metric(label,value) {
+      const node=document.createElement('div'); node.className='metric';
+      const title=document.createElement('span'); title.textContent=label;
+      const number=document.createElement('strong'); number.textContent=value;
+      node.append(title,number); return node;
+    }
+    function renderRanks(targetId,items,emptyText) {
+      const target=document.querySelector(targetId); target.replaceChildren();
+      if(!items.length) { const empty=document.createElement('p'); empty.className='muted'; empty.textContent=emptyText; target.append(empty); return; }
+      for(const item of items) { const row=document.createElement('div'); row.className='rank-item'; const name=document.createElement('span'); name.textContent=item.name; const count=document.createElement('span'); count.className='count'; count.textContent=item.count; row.append(name,count); target.append(row); }
+    }
+    async function loadOverview() {
+      const data=await getJson('/project-knowledge/overview');
+      const counts=Object.fromEntries(data.entity_type_counts.map(item=>[item.entity_type,item.count]));
+      metrics.replaceChildren(metric('知识实体',data.entity_count),metric('关联关系',data.relation_count),metric('事故案例',counts.accident||0),metric('安全规则',counts.rule||0));
+      renderRanks('#topScenes',data.top_scenes,'暂无正式任务或审计场景');
+      renderRanks('#topRisks',data.top_risks,'暂无正式任务风险记录');
+      renderRanks('#topWrong',data.common_wrong_questions,'暂无正式错题记录');
+    }
+    function entityTag(item) {
+      const tag=document.createElement('span'); tag.className='tag'+(item.data_scope==='test'?' test':''); tag.textContent=typeNames[item.entity_type]||item.entity_type; return tag;
+    }
+    function renderResults(data) {
+      results.replaceChildren(); searchStatus.textContent=`找到 ${data.total} 条相关知识，显示前 ${data.items.length} 条。`;
+      if(!data.items.length) { const empty=document.createElement('div'); empty.className='empty'; empty.textContent='没有找到符合条件的知识。'; results.append(empty); return; }
+      for(const item of data.items) {
+        const button=document.createElement('button'); button.type='button'; button.className='entity-card'; button.dataset.id=item.id;
+        const tag=entityTag(item); const title=document.createElement('strong'); title.textContent=item.name;
+        const summary=document.createElement('p'); summary.className='summary'; summary.textContent=item.summary||item.scene||'暂无摘要';
+        const displayScene=item.scene||(item.entity_type==='scene'?item.name:'未分类');
+        const meta=document.createElement('p'); meta.textContent=`${displayScene} · ${item.relation_count}条关联`;
+        button.append(tag,title,summary,meta); button.addEventListener('click',()=>loadEntity(item.id)); results.append(button);
+      }
+    }
+    function nodeLabel(value) { const text=String(value||''); return text.length>13?text.slice(0,12)+'…':text; }
+    function svgElement(name,attrs={}) { const node=document.createElementNS('http://www.w3.org/2000/svg',name); for(const [key,value] of Object.entries(attrs)) node.setAttribute(key,value); return node; }
+    function renderGraph(data) {
+      const wrap=document.createElement('div'); wrap.className='graph-wrap';
+      const svg=svgElement('svg',{id:'graphSvg',viewBox:'0 0 760 390',role:'img','aria-label':'知识实体一层关系图'});
+      const center=data.center; const neighbors=data.nodes.filter(item=>item.id!==center.id).slice(0,12); const positions=new Map([[center.id,{x:380,y:195}]]);
+      neighbors.forEach((item,index)=>{ const angle=(Math.PI*2*index/Math.max(neighbors.length,1))-Math.PI/2; positions.set(item.id,{x:380+270*Math.cos(angle),y:195+145*Math.sin(angle)}); });
+      for(const relation of data.relations) {
+        const a=positions.get(relation.source_entity_id), b=positions.get(relation.target_entity_id); if(!a||!b) continue;
+        svg.append(svgElement('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'graph-line'}));
+        const label=svgElement('text',{x:(a.x+b.x)/2,y:(a.y+b.y)/2-4,class:'graph-label'}); label.textContent=relation.label; svg.append(label);
+      }
+      for(const item of [center,...neighbors]) {
+        const pos=positions.get(item.id); const group=svgElement('g',{class:'graph-node'+(item.id===center.id?' center':''),tabindex:'0'});
+        group.append(svgElement('rect',{x:pos.x-62,y:pos.y-23,width:124,height:46}));
+        const text=svgElement('text',{x:pos.x,y:pos.y+4}); text.textContent=nodeLabel(item.name); group.append(text);
+        const title=svgElement('title'); title.textContent=item.name; group.append(title);
+        group.addEventListener('click',()=>loadEntity(item.id)); svg.append(group);
+      }
+      wrap.append(svg); return wrap;
+    }
+    function evidenceText(value) {
+      const pairs=Object.entries(value||{}).filter(([,entry])=>entry!==null&&entry!==''&&(!Array.isArray(entry)||entry.length));
+      return pairs.slice(0,6).map(([key,entry])=>{const text=String(typeof entry==='object'?JSON.stringify(entry):entry);return `${key}：${text.length>500?text.slice(0,499)+'…':text}`;}).join('\n')||'该关系由现有结构化记录确定性生成。';
+    }
+    function renderDetail(data) {
+      detail.replaceChildren(); const head=document.createElement('div'); head.className='detail-head'; head.append(entityTag(data.center));
+      const title=document.createElement('h2'); title.textContent=data.center.name; const summary=document.createElement('p'); summary.textContent=data.center.summary||'暂无摘要'; head.append(title,summary); detail.append(head,renderGraph(data));
+      const heading=document.createElement('h3'); heading.textContent=`关联与证据（${data.relations.length}）`; heading.style.marginTop='18px'; detail.append(heading);
+      const nodeMap=new Map(data.nodes.map(item=>[item.id,item])); const list=document.createElement('div'); list.className='relations';
+      for(const relation of data.relations) { const source=nodeMap.get(relation.source_entity_id),target=nodeMap.get(relation.target_entity_id); const card=document.createElement('div'); card.className='relation'; const label=document.createElement('b'); label.textContent=`${source?.name||'未知'} — ${relation.label} → ${target?.name||'未知'}`; const evidence=document.createElement('p'); evidence.textContent=evidenceText(relation.evidence); card.append(label,evidence); list.append(card); }
+      if(!data.relations.length) { const empty=document.createElement('div'); empty.className='empty'; empty.textContent='该实体暂无关联关系。'; list.append(empty); }
+      detail.append(list);
+    }
+    async function loadEntity(id) {
+      try { detail.innerHTML='<div class="empty">正在加载关系与证据……</div>'; const include=document.querySelector('#includeTest').checked; const data=await getJson(`/project-knowledge/entities/${encodeURIComponent(id)}?include_test=${include}`); renderDetail(data); }
+      catch(error) { detail.innerHTML=''; const node=document.createElement('p'); node.className='error'; node.textContent=error.message; detail.append(node); }
+    }
+    document.querySelector('#searchForm').addEventListener('submit',async event=>{
+      event.preventDefault(); const params=new URLSearchParams({q:document.querySelector('#query').value,entity_type:document.querySelector('#entityType').value,scene:document.querySelector('#scene').value,include_test:document.querySelector('#includeTest').checked});
+      searchStatus.textContent='正在查询……'; try { renderResults(await getJson(`/project-knowledge/search?${params}`)); } catch(error) { searchStatus.textContent=error.message; searchStatus.className='error'; }
+    });
+    function listSection(title,items) { const section=document.createElement('div'); section.className='worker-section'; const heading=document.createElement('h3'); heading.textContent=title; section.append(heading); if(!items.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='暂无记录';section.append(empty);return section;} const list=document.createElement('ul'); for(const item of items){const row=document.createElement('li');row.textContent=item.name;list.append(row);} section.append(list);return section; }
+    function renderWorker(data) {
+      const target=document.querySelector('#workerResult'); target.replaceChildren(); const summary=document.createElement('div'); summary.className='worker-summary'; summary.append(metric('任务',data.summary.task_count),metric('问答',data.summary.qa_count),metric('测验',data.summary.quiz_count),metric('待复习错题',data.summary.active_wrong_count)); target.append(summary,listSection('最近任务',data.tasks),listSection('安全问答',data.qa_records),listSection('待复习题目',data.active_wrong_questions));
+    }
+    document.querySelector('#workerForm').addEventListener('submit',async event=>{ event.preventDefault(); const target=document.querySelector('#workerResult'); target.innerHTML='<p class="muted">正在查询个人记录……</p>'; try{renderWorker(await getJson(`/project-knowledge/workers/${encodeURIComponent(document.querySelector('#workerRef').value)}`));}catch(error){target.innerHTML='';const node=document.createElement('p');node.className='error';node.textContent=error.message;target.append(node);} });
+    loadOverview().catch(error=>{ metrics.replaceChildren(metric('加载失败',error.message)); });
+  </script>
+</body>
+</html>

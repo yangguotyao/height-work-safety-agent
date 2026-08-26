@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+from ..enums import ApplicabilityStatus
+
+
+@dataclass(frozen=True)
+class ApplicabilityDecision:
+    status: ApplicabilityStatus
+    reason: str
+    supporting_segment_ids: tuple[str, ...] = ()
+
+
+# These groups contain mutually exclusive construction variants. Automatic
+# exclusion is permitted only when the rule names one variant and the plan gives
+# positive evidence for another variant in the same group. Missing words alone
+# never prove non-applicability.
+EXCLUSIVE_VARIANT_GROUPS: tuple[tuple[tuple[str, ...], ...], ...] = (
+    (
+        ("附着式升降脚手架", "升降脚手架", "爬架"),
+        ("悬挑式脚手架", "悬挑脚手架"),
+        ("落地式脚手架", "落地脚手架", "落地作业脚手架"),
+        ("支撑脚手架", "模板支架", "高支模"),
+    ),
+    (
+        ("悬挑式操作平台", "悬挑卸料平台"),
+        ("落地式操作平台",),
+        ("移动式操作平台",),
+    ),
+)
+
+
+def _compact(value: str) -> str:
+    return re.sub(r"\s+", "", value or "")
+
+
+def _matched_variants(text: str, group: tuple[tuple[str, ...], ...]) -> set[int]:
+    compact = _compact(text)
+    return {
+        index
+        for index, aliases in enumerate(group)
+        if any(_compact(alias) in compact for alias in aliases)
+    }
+
+
+def assess_rule_applicability(
+    rule: dict, evidence: list[dict], scene_instances: list[dict]
+) -> ApplicabilityDecision:
+    rule_text = " ".join(
+        str(rule.get(field, ""))
+        for field in ("scene", "process", "trigger_condition", "requirement", "original_text")
+    )
+    plan_parts = [
+        f"{item.get('heading_path', '')} {item.get('text', '')}" for item in evidence
+    ]
+    plan_parts.extend(
+        f"{item.get('scene', '')} {item.get('title', '')}" for item in scene_instances
+    )
+    plan_text = " ".join(plan_parts)
+
+    for group in EXCLUSIVE_VARIANT_GROUPS:
+        rule_variants = _matched_variants(rule_text, group)
+        plan_variants = _matched_variants(plan_text, group)
+        if len(rule_variants) != 1 or not plan_variants:
+            continue
+        rule_variant = next(iter(rule_variants))
+        supporting_ids = tuple(
+            str(item["id"])
+            for item in evidence
+            if _matched_variants(
+                f"{item.get('heading_path', '')} {item.get('text', '')}", group
+            )
+            & plan_variants
+        )[:4]
+        if rule_variant not in plan_variants and len(plan_variants) == 1:
+            plan_variant = next(iter(plan_variants))
+            rule_name = group[rule_variant][0]
+            plan_name = group[plan_variant][0]
+            return ApplicabilityDecision(
+                status=ApplicabilityStatus.NOT_APPLICABLE,
+                reason=f"规则限定为“{rule_name}”，方案证据明确为“{plan_name}”，作业类型相斥。",
+                supporting_segment_ids=supporting_ids,
+            )
+        if rule_variant in plan_variants:
+            return ApplicabilityDecision(
+                status=ApplicabilityStatus.APPLICABLE,
+                reason=f"规则与方案均明确涉及“{group[rule_variant][0]}”。",
+                supporting_segment_ids=supporting_ids,
+            )
+
+    if not rule.get("trigger_condition"):
+        return ApplicabilityDecision(
+            status=ApplicabilityStatus.APPLICABLE,
+            reason="规则未设置额外触发条件，已识别场景即满足适用前提。",
+        )
+    return ApplicabilityDecision(
+        status=ApplicabilityStatus.UNCERTAIN,
+        reason="已识别对应场景，但规则仍含具体触发条件；需结合方案证据判断，不能因未提及而自动排除。",
+    )

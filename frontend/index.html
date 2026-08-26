@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>高处作业施工方案智能审计</title>
+  <style>
+    :root { color-scheme: light; --ink:#16211c; --muted:#64726b; --line:#dce5df; --brand:#087a55; --bg:#f4f7f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+    main { width:min(1120px,calc(100% - 32px)); margin:36px auto 80px; }
+    header { margin-bottom:24px; }
+    h1 { margin:0 0 8px; font-size:clamp(26px,4vw,42px); letter-spacing:-1px; }
+    header p { margin:0; color:var(--muted); }
+    .nav-link { display:inline-block; margin-top:14px; color:var(--brand); font-weight:700; text-decoration:none; }
+    .panel { background:white; border:1px solid var(--line); border-radius:16px; padding:22px; box-shadow:0 10px 30px rgba(20,60,40,.05); }
+    form { display:grid; grid-template-columns:minmax(260px,1fr) 160px 190px; gap:14px; align-items:end; }
+    label { display:grid; gap:7px; font-size:14px; color:var(--muted); }
+    input, select, button { width:100%; min-height:44px; border-radius:9px; border:1px solid #cbd7cf; padding:9px 11px; font:inherit; background:white; }
+    button { border:0; background:var(--brand); color:white; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:.55; cursor:wait; }
+    #status { margin-top:16px; min-height:24px; color:var(--muted); }
+    #summary { display:none; margin-top:22px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+    .metric { background:#eef6f1; border-radius:12px; padding:14px; }
+    .metric strong { display:block; font-size:22px; margin-top:4px; }
+    #results { display:grid; gap:14px; margin-top:18px; }
+    .result-card { background:white; border:1px solid var(--line); border-left:5px solid #8c9a92; border-radius:13px; padding:18px; }
+    .result-card.bad { border-left-color:#c63a32; }
+    .result-card.good { border-left-color:#16865e; }
+    .result-card.unknown { border-left-color:#d29313; }
+    .result-card.na { border-left-color:#7b8791; opacity:.86; }
+    .result-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; }
+    .tag { display:inline-block; color:#245442; background:#e8f3ed; border-radius:999px; padding:4px 9px; font-size:13px; }
+    .result-name { font-weight:800; font-size:17px; }
+    .block { margin-top:12px; }
+    .block b { display:block; margin-bottom:5px; font-size:13px; color:var(--muted); }
+    .block p { margin:0; line-height:1.7; white-space:pre-wrap; }
+    details { margin-top:12px; color:#394a41; }
+    details pre { white-space:pre-wrap; font-family:inherit; line-height:1.65; background:#f6f8f7; padding:12px; border-radius:8px; }
+    .error { color:#b3261e !important; }
+    @media (max-width:760px) { form { grid-template-columns:1fr; } #summary { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>高处作业施工方案智能审计</h1>
+      <p>上传 DOCX 或 DOC，系统按施工场景实例自动确定审计规则、检索规范并展示可追溯结果。</p>
+      <a class="nav-link" href="/worker-assistant">进入“高处小安”每日任务风险卡 →</a><br>
+      <a class="nav-link" href="/project-knowledge">进入项目安全知识库 →</a><br>
+      <a class="nav-link" href="/daily-risk">进入动态风险工作台 →</a>
+    </header>
+    <section class="panel">
+      <form id="auditForm">
+        <label>施工方案
+          <input id="file" name="file" type="file" accept=".doc,.docx" required>
+        </label>
+        <label>审计模式
+          <select id="useLlm" name="use_llm"><option value="true">外部大模型</option><option value="false">本地保守模式</option></select>
+        </label>
+        <button id="submit" type="submit">上传并开始审计</button>
+      </form>
+      <div id="status">等待上传施工方案。</div>
+    </section>
+    <section id="summary"></section>
+    <section id="results"></section>
+    <section id="modelCallMonitor" hidden></section>
+  </main>
+  <script>
+    const form = document.querySelector('#auditForm');
+    const statusBox = document.querySelector('#status');
+    const submit = document.querySelector('#submit');
+    const summary = document.querySelector('#summary');
+    const results = document.querySelector('#results');
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    function setStatus(text, error=false) {
+      statusBox.textContent = text;
+      statusBox.className = error ? 'error' : '';
+    }
+    function addMetric(label, value) {
+      const node = document.createElement('div'); node.className='metric';
+      const title = document.createElement('span'); title.textContent=label;
+      const number = document.createElement('strong'); number.textContent=value;
+      node.append(title, number); summary.append(node);
+    }
+    function formatDuration(seconds) {
+      if (seconds == null || Number.isNaN(Number(seconds))) return '未记录';
+      const total=Math.max(0,Math.round(Number(seconds)));
+      const hours=Math.floor(total/3600);
+      const minutes=Math.floor((total%3600)/60);
+      const secs=total%60;
+      if (hours) return `${hours}时${minutes}分${secs}秒`;
+      if (minutes) return `${minutes}分${secs}秒`;
+      return `${secs}秒`;
+    }
+    function addBlock(card, label, text) {
+      const block=document.createElement('div'); block.className='block';
+      const title=document.createElement('b'); title.textContent=label;
+      const body=document.createElement('p'); body.textContent=humanText(text || '未提供');
+      block.append(title,body); card.append(block);
+    }
+    function humanText(value) {
+      return String(value || '').replace(/\b[a-f0-9]{24,64}\b/gi, '对应方案段落');
+    }
+    function renderAudit(audit) {
+      results.replaceChildren(); summary.replaceChildren(); summary.style.display='grid';
+      const counts = audit.findings.reduce((acc,item)=>{acc[item.result]=(acc[item.result]||0)+1; return acc;},{});
+      addMetric('识别场景', audit.scenes.length);
+      addMetric('场景实例', audit.scene_instances?.length || 0);
+      addMetric('规则审计单元', audit.candidate_rule_count || audit.items.length);
+      addMetric('规则包', `${audit.completed_bundles}/${audit.bundle_count}`);
+      addMetric('规则包模型调用', audit.model_call_count || 0);
+      addMetric('业务问题', audit.findings.length);
+      addMetric('不符合', counts['不符合'] || 0);
+      addMetric('未说明', counts['未说明'] || 0);
+      addMetric('处理总耗时', formatDuration(audit.total_elapsed_seconds ?? audit.elapsed_seconds));
+      if (audit.scene_instances?.length) {
+        const sceneDetail=document.createElement('details'); sceneDetail.open=true;
+        const sceneTitle=document.createElement('summary');
+        sceneTitle.textContent=`查看 ${audit.scene_instances.length} 个场景实例`;
+        const sceneText=document.createElement('pre');
+        sceneText.textContent=audit.scene_instances.map(item=>
+          `${item.scene}｜${item.title}\n位置：${item.location}｜来源：${item.sources.join(' + ')}`
+        ).join('\n\n');
+        sceneDetail.append(sceneTitle,sceneText); results.append(sceneDetail);
+      }
+      const excludedItems=audit.items.filter(item=>['不适用','方案外核验'].includes(item.result));
+      if (excludedItems.length) {
+        const excludedDetail=document.createElement('details');
+        const excludedTitle=document.createElement('summary');
+        excludedTitle.textContent=`查看 ${excludedItems.length} 条不适用或方案外核验规则`;
+        const excludedText=document.createElement('pre');
+        excludedText.textContent=excludedItems.map(item=>
+          `${item.scene}｜${item.rule_id}｜${item.result}\n${item.applicability_reason}\n${item.plan_obligation_reason}`
+        ).join('\n\n');
+        excludedDetail.append(excludedTitle,excludedText); results.append(excludedDetail);
+      }
+      for (const item of audit.findings) {
+        const card=document.createElement('article');
+        card.className='result-card '+(item.result==='不符合'?'bad':'unknown');
+        const head=document.createElement('div'); head.className='result-head';
+        const left=document.createElement('div');
+        const tag=document.createElement('span'); tag.className='tag'; tag.textContent=item.scene;
+        const name=document.createElement('div'); name.className='result-name'; name.textContent=`${item.result} · ${item.title}`;
+        left.append(tag,name);
+        const confidence=document.createElement('span'); confidence.textContent=`置信度 ${Math.round(item.confidence*100)}%`;
+        head.append(left,confidence); card.append(head);
+        addBlock(card,'问题描述',item.issue);
+        addBlock(card,'方案原文',item.plan_quote || '方案中未检索到足够证据');
+        addBlock(card,'原文位置',item.source_location || '未定位');
+        addBlock(card,'修改建议',item.suggestion);
+        const detail=document.createElement('details');
+        const detailTitle=document.createElement('summary'); detailTitle.textContent=`查看 ${item.rule_ids.length} 条原子规则及规范依据`;
+        const pre=document.createElement('pre');
+        const atomic=item.atomic_items.map(x=>`${x.rule_id}｜${x.result}\n适用性：${humanText(x.applicability_reason)}\n方案说明义务：${humanText(x.plan_obligation_reason)}`).join('\n\n');
+        const standards=item.basis.map(x=>`${x.standard_code||x.standard} ${x.clause||''} ${x.page?'PDF第'+x.page+'页':''}\n${x.quote||''}`).join('\n\n');
+        pre.textContent=`【原子规则】\n${atomic}\n\n【规范依据】\n${standards}`;
+        detail.append(detailTitle,pre); card.append(detail);
+        results.append(card);
+      }
+      window.dispatchEvent(new CustomEvent('audit:updated',{detail:audit}));
+    }
+    async function poll(runId) {
+      let renderedSignature='';
+      for (;;) {
+        const response=await fetch(`/audits/${runId}`);
+        const audit=await response.json();
+        if (!response.ok) throw new Error(audit.detail || '查询审计任务失败');
+        const progress=audit.bundle_count ? `；规则包进度：${audit.completed_bundles}/${audit.bundle_count}` : '';
+        setStatus(`当前状态：${audit.status}；处理节点：${audit.current_node || '等待中'}${progress}；已产生业务问题：${audit.findings.length}；已耗时：${formatDuration(audit.total_elapsed_seconds ?? audit.elapsed_seconds)}`);
+        const signature=`${audit.items.length}|${audit.findings.length}|${audit.completed_bundles}`;
+        if (signature!==renderedSignature || audit.status==='completed') {
+          renderAudit(audit);
+          renderedSignature=signature;
+        }
+        if (audit.status==='completed') return;
+        if (audit.status==='failed') throw new Error(audit.error || '审计失败');
+        await sleep(3000);
+      }
+    }
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); results.replaceChildren(); summary.style.display='none'; submit.disabled=true;
+      try {
+        const data=new FormData();
+        data.append('file',document.querySelector('#file').files[0]);
+        data.append('use_llm',document.querySelector('#useLlm').value);
+        setStatus('正在上传并解析文档……');
+        const response=await fetch('/audit-documents',{method:'POST',body:data});
+        const run=await response.json();
+        if (!response.ok) throw new Error(run.detail || '上传失败');
+        setStatus(`文档已解析，审计任务 ${run.id} 已启动。`);
+        await poll(run.id);
+        setStatus('审计完成。结果是安全辅助信息，不替代法定审查。');
+      } catch (error) { setStatus(error.message || String(error),true); }
+      finally { submit.disabled=false; }
+    });
+  </script>
+  <script src="/assets/model-call-monitor.js"></script>
+</body>
+</html>
