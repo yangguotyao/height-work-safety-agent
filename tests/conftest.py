@@ -26,21 +26,15 @@ def test_settings(tmp_path: Path) -> Settings:
         rule_workbook_path=(
             PROJECT_ROOT / "data" / "规则化数据库" / "高处作业结构化规则数据库.xlsx"
         ),
-        gold_workbook_path=(
-            PROJECT_ROOT
-            / "data"
-            / "方案审计标准数据集"
-            / "《高支模专项方案》高处作业风险审计.xlsx"
-        ),
         audit_concurrency=3,
     )
 
 
 @pytest.fixture
 def sample_docx() -> Path:
-    return PROJECT_ROOT / "data" / "方案审计标准数据集" / "高支模专项方案.docx"
+    return PROJECT_ROOT / "tests" / "fixtures" / "高支模专项方案.docx"
 
 
 @pytest.fixture
 def sample_doc() -> Path:
-    return PROJECT_ROOT / "data" / "施工方案" / "桥梁工程高空作业专项安全施工方案.doc"
+    return PROJECT_ROOT / "tests" / "fixtures" / "桥梁工程高空作业专项安全施工方案.doc"

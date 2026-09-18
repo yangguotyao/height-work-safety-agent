@@ -83,18 +83,14 @@ Dockerfile.incremental
 /deploy/access-control.on.conf
 /deploy/nginx.https.conf
 /frontend-vue/src/views/KnowledgeView.vue
+/backend/app/services/question_bank.py
+/backend/app/services/gold_evaluation.py
 
-# Keep only runtime and test data required by the repository
-/data/安全学习题库/*
-!/data/安全学习题库/高处作业安全题库.json
-/data/动态风险评估测试集/*
-!/data/动态风险评估测试集/动态风险评估默认测试集.json
-/data/方案审计标准数据集/*
-!/data/方案审计标准数据集/《高支模专项方案》高处作业风险审计.xlsx
-!/data/方案审计标准数据集/高支模专项方案.docx
-/data/施工方案/*
-!/data/施工方案/桥梁工程高空作业专项安全施工方案.doc
-!/data/施工方案/脚手架工程施工方案_预置.docx
+# Keep only runtime data required by the repository; test fixtures live in tests/fixtures.
+/data/安全学习题库/
+/data/动态风险评估测试集/
+/data/方案审计标准数据集/
+/data/施工方案/
 /data/高处作业事故报告数据集_55例/
 /data/高处作业事故知识图谱_55例/*
 !/data/高处作业事故知识图谱_55例/高处作业事故知识图谱.sqlite

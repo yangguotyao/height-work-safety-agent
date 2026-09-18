@@ -129,19 +129,6 @@ def test_complete_backend_audit_flow_with_rag(test_settings, sample_docx):
         assert model_calls.status_code == 200
         assert model_calls.json()["summary"]["call_count"] == 0
 
-        gold_test = client.post("/gold-tests/run", json={"audit_run_id": run_id})
-        assert gold_test.status_code == 200
-        gold_body = gold_test.json()
-        assert gold_body["total_gold"] > 0
-        assert "《高支模专项方案》" in gold_body["gold_source"]
-        assert gold_body["generated_items"] == len(body["items"])
-        assert len(gold_body["details"]) == gold_body["total_gold"]
-
-        stored_test = client.get(f"/gold-tests/{gold_body['id']}")
-        assert stored_test.status_code == 200
-        assert stored_test.json()["details"] == gold_body["details"]
-
-
 def test_rejects_invalid_legacy_doc_upload(test_settings):
     app = create_app(test_settings)
     with TestClient(app) as client:

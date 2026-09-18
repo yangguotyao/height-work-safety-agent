@@ -53,7 +53,7 @@ def test_schedule_resolves_relative_and_explicit_dates():
 
 
 def test_default_dynamic_risk_dataset_has_40_reviewable_scenarios():
-    path = Path("data/动态风险评估测试集/动态风险评估默认测试集.json")
+    path = Path("tests/fixtures/动态风险评估默认测试集.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     scenarios = payload["scenarios"]
     assert payload["level_policy"] == "deterministic"

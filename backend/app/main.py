@@ -45,8 +45,6 @@ from .schemas import (
     AuditRunOut,
     DocumentMarkdownOut,
     DocumentOut,
-    GoldTestCreate,
-    GoldTestOut,
     ParseResult,
     PlanRevisionOut,
     ReviewRequest,
@@ -56,13 +54,11 @@ from .schemas import (
 from .services.accident_knowledge import AccidentKnowledgeRepository
 from .services.document_service import DocumentService
 from .services.dynamic_risk import DynamicRiskService
-from .services.gold_evaluation import GoldEvaluator, import_gold_cases
 from .services.hazard_inspection import HazardInspectionService
 from .services.learning_repository import LearningRepository
 from .services.model_call_monitor import ModelCallMonitor
 from .services.model_provider import build_audit_model
 from .services.project_knowledge import ProjectKnowledgeService
-from .services.question_bank import QuestionBank
 from .services.risk_card_service import RiskCardService
 from .services.rule_importer import import_rules
 from .services.safety_learning import SafetyQAService
@@ -74,10 +70,6 @@ from .services.weather_provider import build_weather_provider
 from .services.web_search import BochaWebSearchService
 from .services.worker_assistant import WorkerAssistantService
 from .services.worker_repository import WorkerAssistantRepository
-
-SCAFFOLD_AUDIT_SAMPLE = PROJECT_ROOT / "data" / "施工方案" / "脚手架工程施工方案_预置.docx"
-SCAFFOLD_AUDIT_DISPLAY_NAME = "脚手架工程施工方案.doc"
-
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
@@ -94,23 +86,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         repository = Repository(database)
         if repository.count_rules() == 0:
             import_rules(database, workspace_settings.resolved_rule_workbook_path)
-        gold_directory = workspace_settings.resolved_gold_workbook_path.parent
-        gold_workbooks = (
-            sorted(gold_directory.glob("*.xlsx")) if gold_directory.exists() else []
-        )
-        if not gold_workbooks and workspace_settings.resolved_gold_workbook_path.exists():
-            gold_workbooks = [workspace_settings.resolved_gold_workbook_path]
-        for gold_workbook in gold_workbooks:
-            if not gold_workbook.name.startswith("~$"):
-                import_gold_cases(database, gold_workbook)
         standard_rag = StandardRAGService(workspace_settings, database)
         if repository.count_standard_chunks() == 0 or standard_rag.vector_count() == 0:
             standard_rag.reindex()
         worker_repository = WorkerAssistantRepository(database)
         learning_repository = LearningRepository(database)
-        question_bank = QuestionBank(
-            workspace_settings.resolved_question_bank_path, database
-        )
         accident_repository = AccidentKnowledgeRepository(
             workspace_settings.resolved_accident_graph_path
         )
@@ -123,7 +103,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         project_knowledge = ProjectKnowledgeService(
             database,
             accident_repository,
-            question_bank,
             workspace_settings.project_name,
         )
         dynamic_risk = DynamicRiskService(
@@ -145,7 +124,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "database": database,
             "repository": repository,
             "document_service": DocumentService(repository, workspace_settings),
-            "gold_evaluator": GoldEvaluator(database, repository),
             "hazard_inspection_service": HazardInspectionService(
                 database, workspace_settings, standard_rag=standard_rag
             ),
@@ -155,7 +133,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "worker_assistant_service": WorkerAssistantService(
                 workspace_settings, repository, worker_repository, risk_cards
             ),
-            "question_bank": question_bank,
             "safety_qa_service": SafetyQAService(
                 workspace_settings,
                 repository,
@@ -277,7 +254,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "/documents",
                 "/audits",
                 "/audit-",
-                "/gold-tests",
                 "/project-knowledge/",
                 "/rules/",
                 "/standards/",
@@ -546,37 +522,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         background_tasks.add_task(run_graph, request, run["id"], payload)
         return run
 
-    @app.post(
-        "/api/v1/audit-samples/scaffold",
-        response_model=AuditRunOut,
-        status_code=status.HTTP_202_ACCEPTED,
-    )
-    async def audit_scaffold_sample(
-        request: Request,
-        background_tasks: BackgroundTasks,
-        use_llm: Annotated[bool, Form()] = True,
-    ) -> dict:
-        service: DocumentService = request.app.state.document_service
-        repository: Repository = request.app.state.repository
-        settings_: Settings = request.app.state.settings
-        document = await run_in_threadpool(
-            service.save_bundled_document,
-            SCAFFOLD_AUDIT_SAMPLE,
-            display_name=SCAFFOLD_AUDIT_DISPLAY_NAME,
-        )
-        await run_in_threadpool(service.parse_document, document["id"])
-        payload = AuditCreate(document_id=document["id"], use_llm=use_llm)
-        model = build_audit_model(settings_, use_llm)
-        run = repository.create_audit_run(
-            document_id=document["id"],
-            model_provider=model.provider_name,
-            model_name=model.model_name,
-            rule_limit=0,
-            browser_session_id=browser_session_id(request),
-        )
-        background_tasks.add_task(run_graph, request, run["id"], payload)
-        return run
-
     @app.get("/audits/{run_id}", response_model=AuditRunOut)
     def get_audit(run_id: str, request: Request) -> dict:
         return request.app.state.repository.get_audit_run(run_id, include_items=True)
@@ -644,17 +589,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request.app.state.dynamic_risk_service.refresh_for_audit(item["run_id"])
         request.app.state.project_knowledge_service.sync()
         return repository.get_audit_run(item["run_id"], include_items=True)
-
-    @app.post("/gold-tests/run", response_model=GoldTestOut)
-    def run_gold_test(payload: GoldTestCreate, request: Request) -> dict:
-        evaluator: GoldEvaluator = request.app.state.gold_evaluator
-        settings_: Settings = request.app.state.settings
-        return evaluator.evaluate(payload.audit_run_id, str(settings_.resolved_gold_workbook_path))
-
-    @app.get("/gold-tests/{test_run_id}", response_model=GoldTestOut)
-    def get_gold_test(test_run_id: str, request: Request) -> dict:
-        evaluator: GoldEvaluator = request.app.state.gold_evaluator
-        return evaluator.get_test_run(test_run_id)
 
     return app
 

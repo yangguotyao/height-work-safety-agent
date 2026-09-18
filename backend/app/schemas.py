@@ -169,34 +169,6 @@ class RuleImportOut(BaseModel):
     source: str
 
 
-class GoldTestCreate(BaseModel):
-    audit_run_id: str
-
-
-class GoldCaseMatch(BaseModel):
-    gold_case_id: str
-    gold_scene: str
-    expected_result: str
-    audit_item_id: str | None = None
-    actual_result: str | None = None
-    match_score: float
-    result_correct: bool
-
-
-class GoldTestOut(BaseModel):
-    id: str
-    audit_run_id: str
-    gold_source: str
-    total_gold: int
-    generated_items: int
-    matched_cases: int
-    correct_results: int
-    result_accuracy: float
-    average_match_score: float
-    details: list[GoldCaseMatch]
-    created_at: datetime
-
-
 class WorkerTaskDraftOut(BaseModel):
     work_content: str | None = None
     location: str | None = None
@@ -344,69 +316,6 @@ class QuizQuestionOut(BaseModel):
     category: Literal["basic_rule", "prohibited_behavior", "misconception", "scenario"]
     stem: str
     options: list[QuizOptionOut]
-
-
-class QuizCreate(BaseModel):
-    worker_ref: str = Field(min_length=1, max_length=100)
-    task_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
-    scene: str | None = Field(default=None, max_length=100)
-
-
-class QuizAttemptOut(BaseModel):
-    id: str
-    worker_ref: str
-    task_id: str | None = None
-    scene: str
-    scene_name: str
-    status: Literal["in_progress", "submitted"]
-    questions: list[QuizQuestionOut]
-    started_at: datetime
-
-
-class QuizAnswerCreate(BaseModel):
-    question_id: str = Field(min_length=1, max_length=100)
-    answer: str = Field(min_length=1, max_length=10)
-
-
-class QuizSubmitCreate(BaseModel):
-    answers: list[QuizAnswerCreate] = Field(min_length=5, max_length=5)
-
-
-class QuizAnswerResultOut(BaseModel):
-    question_id: str
-    submitted_answer: str
-    correct_answer: str
-    is_correct: bool
-    explanation: str
-    evidence: dict[str, Any]
-
-
-class QuizResultOut(BaseModel):
-    id: str
-    worker_ref: str
-    task_id: str | None = None
-    scene: str
-    scene_name: str
-    status: Literal["submitted"]
-    total: int
-    correct_count: int
-    answers: list[QuizAnswerResultOut]
-
-
-class QuestionBankStatusOut(BaseModel):
-    version: str
-    question_count: int
-    scenes: list[dict[str, Any]]
-
-
-class WorkerLearningRecordOut(BaseModel):
-    worker_ref: str
-    qa_records: list[dict[str, Any]] = Field(default_factory=list)
-    quiz_attempts: list[dict[str, Any]] = Field(default_factory=list)
-    events: list[dict[str, Any]] = Field(default_factory=list)
-    active_wrong_count: int
-    wrong_questions: list[QuizQuestionOut] = Field(default_factory=list)
-    recommendations: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class DynamicRiskEvaluateCreate(BaseModel):

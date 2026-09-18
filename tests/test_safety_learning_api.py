@@ -1,58 +1,9 @@
-import statistics
-from collections import Counter
-
 from fastapi.testclient import TestClient
 
 from backend.app.main import create_app
 from backend.app.services.safety_learning import (
     _has_unsupported_opening_orientation_inference,
 )
-
-
-def test_internal_question_bank_has_required_scene_coverage(test_settings):
-    app = create_app(test_settings)
-    with TestClient(app):
-        assert len(app.state.question_bank.questions) == 130
-
-    banned_phrases = (
-        "只要作业人员经验丰富",
-        "经班组口头同意",
-        "只在发生事故后",
-        "相可不",
-    )
-    single_choice_questions = [
-        item
-        for item in app.state.question_bank.questions.values()
-        if item["type"] == "single_choice"
-    ]
-    assert single_choice_questions
-    answer_counts = Counter(item["answer"] for item in single_choice_questions)
-    assert max(answer_counts.values()) - min(answer_counts.values()) <= 1
-    option_sets_by_scene: dict[str, list[frozenset[str]]] = {}
-    for item in single_choice_questions:
-        option_texts = [option["text"] for option in item["options"]]
-        correct_text = next(
-            option["text"] for option in item["options"] if option["key"] == item["answer"]
-        )
-        distractor_lengths = [
-            len(option["text"])
-            for option in item["options"]
-            if option["key"] != item["answer"]
-        ]
-        assert len(option_texts) == len(set(option_texts)) == 4
-        assert len(correct_text) / statistics.mean(distractor_lengths) <= 1.8
-        assert not any(
-            phrase in option for phrase in banned_phrases for option in option_texts
-        )
-        distractor_set = frozenset(
-            option["text"] for option in item["options"] if option["key"] != item["answer"]
-        )
-        option_sets_by_scene.setdefault(item["scene"], []).append(distractor_set)
-    assert all(
-        len(items) == len(set(items)) for items in option_sets_by_scene.values()
-    )
-
-
 def test_quiz_and_learning_endpoints_are_removed(test_settings):
     app = create_app(test_settings)
     with TestClient(app) as client:

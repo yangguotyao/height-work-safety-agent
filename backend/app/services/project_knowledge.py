@@ -9,7 +9,6 @@ from typing import Any
 from ..db import Database, json_load
 from ..repositories import utc_now
 from .accident_knowledge import AccidentKnowledgeRepository
-from .question_bank import QuestionBank
 
 TEST_WORKERS = {"工人01", "工人A", "工人B"}
 TEST_WORKER_MARKERS = ("测试", "验收", "页面", "test")
@@ -67,13 +66,6 @@ RELATION_LABELS = {
     "QA_ASKED_BY": "问题由工人提出",
     "QA_ABOUT_TASK": "问题关联任务",
     "QA_SUPPORTED_BY": "回答依据",
-    "QUIZ_TAKEN_BY": "测验由工人完成",
-    "QUIZ_ABOUT_TASK": "测验关联任务",
-    "QUIZ_IN_SCENE": "测验属于场景",
-    "QUIZ_HAS_WRONG_ANSWER": "测验答错题目",
-    "WORKER_ACTIVE_WRONG": "工人待复习题目",
-    "QUESTION_IN_SCENE": "题目属于场景",
-    "QUESTION_BASED_ON_RULE": "题目依据规则",
 }
 
 
@@ -123,12 +115,10 @@ class ProjectKnowledgeService:
         self,
         database: Database,
         accidents: AccidentKnowledgeRepository,
-        question_bank: QuestionBank,
         project_name: str,
     ):
         self.db = database
         self.accidents = accidents
-        self.question_bank = question_bank
         self.project_name = project_name
 
     def sync(self) -> dict[str, int]:
@@ -835,157 +825,6 @@ class ProjectKnowledgeService:
                         evidence=evidence,
                     )
 
-        attempts = self.db.fetch_all("SELECT * FROM quiz_attempts ORDER BY started_at")
-        attempt_ids: dict[str, str] = {}
-        for attempt in attempts:
-            attempt_id = str(attempt["id"])
-            worker_id, scope = worker_entity(attempt["worker_ref"])
-            entity = add_entity(
-                "quiz",
-                "quiz_attempt",
-                attempt_id,
-                f"{attempt['scene']} · 5题测验",
-                summary=f"状态：{attempt['status']}；开始：{attempt['started_at']}",
-                scene=attempt["scene"],
-                data_scope=scope,
-                metadata={
-                    "attempt_id": attempt_id,
-                    "worker_ref": attempt["worker_ref"],
-                    "task_id": attempt["task_id"],
-                    "scene": attempt["scene"],
-                    "status": attempt["status"],
-                    "started_at": attempt["started_at"],
-                    "submitted_at": attempt["submitted_at"],
-                },
-                updated_at=attempt["submitted_at"] or attempt["started_at"],
-            )
-            attempt_ids[attempt_id] = entity
-            if worker_id:
-                add_relation(
-                    entity,
-                    "QUIZ_TAKEN_BY",
-                    worker_id,
-                    source_type="quiz_attempt",
-                    source_id=attempt_id,
-                    data_scope=scope,
-                    evidence={"attempt_id": attempt_id},
-                )
-            if attempt["task_id"] in task_ids:
-                add_relation(
-                    entity,
-                    "QUIZ_ABOUT_TASK",
-                    task_ids[attempt["task_id"]],
-                    source_type="quiz_attempt",
-                    source_id=attempt_id,
-                    data_scope=scope,
-                    evidence={"attempt_id": attempt_id},
-                )
-            scene_name = str(attempt["scene"])
-            if scene_name in self.question_bank.scene_catalog:
-                scene_name = str(self.question_bank.scene_catalog[scene_name]["name"])
-            add_relation(
-                entity,
-                "QUIZ_IN_SCENE",
-                scene_entity(scene_name),
-                source_type="quiz_attempt",
-                source_id=attempt_id,
-                data_scope=scope,
-                evidence={"scene": scene_name},
-            )
-
-        question_ids: dict[str, str] = {}
-
-        def question_entity(question_id: str) -> str | None:
-            if question_id not in self.question_bank.questions:
-                return None
-            if question_id in question_ids:
-                return question_ids[question_id]
-            question = self.question_bank.get(question_id)
-            scene_key = str(question["scene"])
-            scene_name = str(self.question_bank.scene_catalog[scene_key]["name"])
-            entity = add_entity(
-                "quiz_question",
-                "question_bank",
-                question_id,
-                question["stem"],
-                summary=question["explanation"],
-                scene=scene_name,
-                metadata={
-                    "question_id": question_id,
-                    "scene": scene_key,
-                    "scene_name": scene_name,
-                    "type": question["type"],
-                    "category": question["category"],
-                    "rule_id": question["rule_id"],
-                },
-            )
-            question_ids[question_id] = entity
-            add_relation(
-                entity,
-                "QUESTION_IN_SCENE",
-                scene_entity(scene_name),
-                source_type="question_bank",
-                source_id=question_id,
-                evidence={"question_id": question_id},
-            )
-            if question["rule_id"] in rule_ids:
-                add_relation(
-                    entity,
-                    "QUESTION_BASED_ON_RULE",
-                    rule_ids[question["rule_id"]],
-                    source_type="question_bank",
-                    source_id=question_id,
-                    evidence=question.get("evidence") or {"rule_id": question["rule_id"]},
-                )
-            return entity
-
-        answers = self.db.fetch_all(
-            "SELECT * FROM quiz_answers ORDER BY worker_ref, question_id, created_at, id"
-        )
-        answer_history: dict[tuple[str, str], list[bool]] = defaultdict(list)
-        for answer in answers:
-            answer_history[(answer["worker_ref"], answer["question_id"])].append(
-                bool(answer["is_correct"])
-            )
-            if answer["is_correct"] or answer["attempt_id"] not in attempt_ids:
-                continue
-            question_id = str(answer["question_id"])
-            target = question_entity(question_id)
-            if target is None:
-                continue
-            scope = _scope_for_worker(str(answer["worker_ref"]))
-            add_relation(
-                attempt_ids[answer["attempt_id"]],
-                "QUIZ_HAS_WRONG_ANSWER",
-                target,
-                source_type="quiz_answer",
-                source_id=str(answer["id"]),
-                data_scope=scope,
-                evidence={
-                    "attempt_id": answer["attempt_id"],
-                    "question_id": question_id,
-                    "submitted_answer": answer["submitted_answer"],
-                    "created_at": answer["created_at"],
-                },
-            )
-
-        for (worker_ref, question_id), history in answer_history.items():
-            newest_first = list(reversed(history))
-            if False not in newest_first or newest_first[:2] == [True, True]:
-                continue
-            worker_id, scope = worker_entity(worker_ref)
-            target = question_entity(question_id)
-            if worker_id and target:
-                add_relation(
-                    worker_id,
-                    "WORKER_ACTIVE_WRONG",
-                    target,
-                    source_type="learning_state",
-                    source_id=f"{worker_ref}:{question_id}",
-                    data_scope=scope,
-                    evidence={"worker_ref": worker_ref, "question_id": question_id},
-                )
-
         with self.db.connect() as connection:
             connection.execute("DELETE FROM knowledge_relations")
             connection.execute("DELETE FROM knowledge_entities")
@@ -1164,7 +1003,7 @@ class ProjectKnowledgeService:
         recent = self.db.fetch_all(
             f"""SELECT * FROM knowledge_entities
                 WHERE {entity_scope} AND entity_type IN
-                    ('task', 'audit_issue', 'qa', 'quiz')
+                    ('task', 'audit_issue', 'qa')
                 ORDER BY updated_at DESC LIMIT 10"""
         )
         scope_counts = self.db.fetch_all(
@@ -1179,7 +1018,6 @@ class ProjectKnowledgeService:
             "data_scope_counts": scope_counts,
             "top_scenes": top_targets(("TASK_IN_SCENE", "ISSUE_IN_SCENE")),
             "top_risks": top_targets(("TASK_HAS_RISK",)),
-            "common_wrong_questions": top_targets(("QUIZ_HAS_WRONG_ANSWER",)),
             "recent_items": [self._public_entity(row) for row in recent],
         }
 
@@ -1223,21 +1061,12 @@ class ProjectKnowledgeService:
                     seen.add(item["id"])
                     unique_values.append(item)
             values[:] = unique_values
-        active_wrong = [
-            self._public_relation(row)
-            for row in rows
-            if row["relation_type"] == "WORKER_ACTIVE_WRONG"
-        ]
         return {
             "worker": self._public_entity(worker),
             "summary": {
                 "task_count": len(related.get("task", [])),
                 "qa_count": len(related.get("qa", [])),
-                "quiz_count": len(related.get("quiz", [])),
-                "active_wrong_count": len(active_wrong),
             },
             "tasks": related.get("task", [])[:20],
             "qa_records": related.get("qa", [])[:20],
-            "quiz_attempts": related.get("quiz", [])[:20],
-            "active_wrong_questions": related.get("quiz_question", [])[:20],
         }

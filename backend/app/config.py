@@ -66,9 +66,6 @@ class Settings(BaseSettings):
     database_path: Path = Path("runtime/height_work_agent.sqlite")
     upload_dir: Path = Path("runtime/uploads")
     rule_workbook_path: Path = Path("data/规则化数据库/高处作业结构化规则数据库.xlsx")
-    gold_workbook_path: Path = Path(
-        "data/方案审计标准数据集/《高支模专项方案》高处作业风险审计.xlsx"
-    )
     standard_pdf_dir: Path = Path("data/规范或标准")
     # Chroma's Windows HNSW reader can fail when its persistence path contains CJK characters.
     chroma_dir: Path = DEFAULT_CHROMA_DIR
@@ -89,7 +86,6 @@ class Settings(BaseSettings):
     accident_graph_path: Path = Path(
         "data/高处作业事故知识图谱_55例/高处作业事故知识图谱.sqlite"
     )
-    question_bank_path: Path = Path("data/安全学习题库/高处作业安全题库.json")
     caiyun_weather_token: str | None = None
     caiyun_app_key: str | None = None
     caiyun_app_secret: str | None = None
@@ -132,10 +128,6 @@ class Settings(BaseSettings):
         return self.resolved_path(self.rule_workbook_path)
 
     @property
-    def resolved_gold_workbook_path(self) -> Path:
-        return self.resolved_path(self.gold_workbook_path)
-
-    @property
     def resolved_standard_pdf_dir(self) -> Path:
         return self.resolved_path(self.standard_pdf_dir)
 
@@ -146,10 +138,6 @@ class Settings(BaseSettings):
     @property
     def resolved_accident_graph_path(self) -> Path:
         return self.resolved_path(self.accident_graph_path)
-
-    @property
-    def resolved_question_bank_path(self) -> Path:
-        return self.resolved_path(self.question_bank_path)
 
     @property
     def parsed_cors_origins(self) -> list[str]:

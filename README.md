@@ -17,7 +17,7 @@
 - 前端：Vue 3、TypeScript、Vite、Pinia、ECharts
 - 后端：FastAPI、Pydantic、SQLite
 - Agent：LangGraph、LangChain Core、MCP
-- 模型：阿里云百炼 OpenAI 兼容接口（现场识别默认配置为 Qwen3.7-Plus）
+- 模型：阿里云百炼 OpenAI 兼容接口
 - 知识检索：Chroma、结构化规则库、施工规范、事故知识图谱
 - 部署：Docker Compose、Nginx
 
@@ -74,8 +74,6 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ## 环境变量
-
-真实密钥只填写在本机或服务器的 `.env` 中，不要提交到 Git 仓库。
 
 | 配置 | 用途 |
 | --- | --- |

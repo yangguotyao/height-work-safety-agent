@@ -12,8 +12,8 @@ def test_bundled_docx_sample_keeps_display_name_and_parses(test_settings):
     service = DocumentService(repository, test_settings)
     source = (
         Path(__file__).resolve().parents[1]
-        / "data"
-        / "施工方案"
+        / "tests"
+        / "fixtures"
         / "脚手架工程施工方案_预置.docx"
     )
 
