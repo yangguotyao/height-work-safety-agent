@@ -53,6 +53,9 @@ WORK_SCAFFOLD_ONLY_RE = re.compile(
     r"附着处|附着结构"
 )
 SUPPORT_SCAFFOLD_RE = re.compile(r"支撑脚手架|模板支架|模板支撑架|支模架")
+CANTILEVER_SCAFFOLD_RE = re.compile(r"悬挑式脚手架|悬挑脚手架|悬挑支承结构")
+GROUND_SCAFFOLD_RE = re.compile(r"落地式脚手架|落地脚手架|落地作业脚手架")
+ATTACHED_LIFTING_SCAFFOLD_RE = re.compile(r"附着式升降脚手架|升降脚手架|爬架")
 
 
 def _rule_matches_scaffold_object(
@@ -81,6 +84,16 @@ def _rule_matches_scaffold_object(
         return True
     if object_type == "unspecified_scaffold" and scene == "施工脚手架":
         return False
+    subtype = str(instance.get("scaffold_subtype") or "")
+    if object_type == "work_scaffold":
+        if SUPPORT_SCAFFOLD_RE.search(text) and not WORK_SCAFFOLD_ONLY_RE.search(text):
+            return False
+        if ATTACHED_LIFTING_SCAFFOLD_RE.search(text):
+            return False
+        if subtype in {"ground", "roof_ground"} and CANTILEVER_SCAFFOLD_RE.search(text):
+            return False
+        if subtype == "cantilever" and GROUND_SCAFFOLD_RE.search(text):
+            return False
     return True
 
 

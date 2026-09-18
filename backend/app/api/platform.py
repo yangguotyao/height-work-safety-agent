@@ -9,7 +9,9 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ..db import json_load
+from ..demo_session import browser_session_id, cleanup_browser_session
 from ..platform.auth import current_identity, require_roles
+from .auth import COOKIE_NAME
 from ..services.dynamic_risk import logical_task_key
 
 router = APIRouter(prefix="/api/v1", tags=["统一 Agent 平台"])
@@ -26,6 +28,8 @@ class AgentMessageCreate(BaseModel):
 
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=4, max_length=80)
+    city: str = Field(default="未填写", min_length=2, max_length=60)
+    address: str = Field(default="", max_length=160)
 
 
 class ProjectUpdate(BaseModel):
@@ -37,44 +41,113 @@ class SafetyLogCreate(BaseModel):
 
 
 @router.get("/projects")
-def projects(request: Request) -> dict[str, Any]:
-    return request.app.state.workspace_manager.list()
+def projects(
+    request: Request,
+    identity: Annotated[dict, Depends(current_identity)],
+) -> dict[str, Any]:
+    manager = request.app.state.workspace_manager
+    memberships = request.app.state.auth_repository.projects_for_user(identity["id"])
+    items = []
+    for membership in memberships:
+        try:
+            item = manager.public(manager.get(membership["id"]))
+        except KeyError:
+            continue
+        items.append(
+            item
+            | {
+                "project_role": membership["project_role"],
+                "active": item["id"] == identity.get("project_id"),
+            }
+        )
+    active = next((item for item in items if item["active"]), None)
+    return {
+        "active_project_id": active["id"] if active else None,
+        "active_project": active,
+        "projects": items,
+    }
 
 
 @router.post("/projects", status_code=201)
-def create_project(payload: ProjectCreate, request: Request) -> dict[str, Any]:
+def create_project(
+    payload: ProjectCreate,
+    request: Request,
+    identity: Annotated[dict, Depends(current_identity)],
+) -> dict[str, Any]:
     manager = request.app.state.workspace_manager
-    return manager.public(manager.create(payload.name))
+    project = manager.create(payload.name, city=payload.city, address=payload.address)
+    request.app.state.auth_repository.register_project(
+        project_id=project["id"],
+        name=project["name"],
+        code=project["code"],
+        owner_user_id=identity["id"],
+    )
+    request.app.state.get_workspace_runtime(project["id"])
+    token = request.cookies.get(COOKIE_NAME, "")
+    if token:
+        request.app.state.auth_repository.set_session_project(
+            token, identity["id"], project["id"]
+        )
+    return manager.public(project) | {"active": True, "project_role": "admin"}
 
 
 @router.post("/projects/{project_id}/activate")
-def activate_project(project_id: str, request: Request) -> dict[str, Any]:
+def activate_project(
+    project_id: str,
+    request: Request,
+    identity: Annotated[dict, Depends(current_identity)],
+) -> dict[str, Any]:
     manager = request.app.state.workspace_manager
     project = manager.get(project_id)
-    active = request.app.state.activate_workspace(project)
+    if request.app.state.base_settings.enforce_auth:
+        request.app.state.auth_repository.set_session_project(
+            request.cookies.get(COOKIE_NAME, ""), identity["id"], project_id
+        )
+    else:
+        project = manager.activate(project_id)
+        runtime = request.app.state.get_workspace_runtime(project_id)
+        request.app.state.proxy_fallback.clear()
+        request.app.state.proxy_fallback.update(runtime)
     return {
-        "active_project": {**manager.public(active), "active": True},
+        "active_project": {**manager.public(project), "active": True},
         "cache_action": "reload",
     }
 
 
 @router.patch("/projects/{project_id}")
 def rename_project(
-    project_id: str, payload: ProjectUpdate, request: Request
+    project_id: str,
+    payload: ProjectUpdate,
+    request: Request,
+    identity: Annotated[dict, Depends(current_identity)],
 ) -> dict[str, Any]:
+    if not request.app.state.auth_repository.user_has_project(identity["id"], project_id):
+        raise HTTPException(status_code=404, detail="项目不存在")
     manager = request.app.state.workspace_manager
     project = manager.rename(project_id, payload.name)
-    is_active = project_id == manager.list()["active_project_id"]
-    if is_active:
-        project = request.app.state.activate_workspace(project)
+    request.app.state.auth_repository.update_project(project_id, project["name"])
+    request.app.state.workspace_runtimes.pop(project_id, None)
+    runtime = request.app.state.get_workspace_runtime(project_id)
+    is_active = project_id == identity.get("project_id")
+    if not request.app.state.base_settings.enforce_auth:
+        is_active = project_id == manager.list()["active_project_id"]
+        if is_active:
+            request.app.state.proxy_fallback.clear()
+            request.app.state.proxy_fallback.update(runtime)
     return {**manager.public(project), "active": is_active}
 
 
 @router.delete("/projects/{project_id}")
-def delete_project(project_id: str, request: Request) -> dict[str, Any]:
+def delete_project(
+    project_id: str,
+    request: Request,
+    identity: Annotated[dict, Depends(current_identity)],
+) -> dict[str, Any]:
     manager = request.app.state.workspace_manager
+    if not request.app.state.auth_repository.user_has_project(identity["id"], project_id):
+        raise HTTPException(status_code=404, detail="项目不存在")
     project = manager.get(project_id)
-    if project_id == manager.list()["active_project_id"]:
+    if project_id == identity.get("project_id"):
         raise ValueError("当前项目不能直接删除，请先切换到其他项目")
 
     project_settings = manager.settings_for(project)
@@ -86,9 +159,13 @@ def delete_project(project_id: str, request: Request) -> dict[str, Any]:
         client.delete_collection(project_settings.standard_collection)
 
     deleted = manager.delete(project_id)
+    request.app.state.auth_repository.delete_project(project_id)
+    request.app.state.workspace_runtimes.pop(project_id, None)
     return {
         "deleted_project": manager.public(deleted),
-        "remaining_projects": len(manager.list()["projects"]),
+        "remaining_projects": len(
+            request.app.state.auth_repository.projects_for_user(identity["id"])
+        ),
     }
 
 
@@ -156,7 +233,10 @@ def create_safety_log(
     response: Response,
     _: Annotated[dict, Depends(current_identity)],
 ) -> dict[str, Any]:
-    result = request.app.state.safety_log_service.generate(payload.assessment_date.isoformat())
+    result = request.app.state.safety_log_service.generate(
+        payload.assessment_date.isoformat(),
+        browser_session_id=browser_session_id(request),
+    )
     if not result["version_created"]:
         response.status_code = 200
     return result
@@ -168,7 +248,9 @@ def safety_logs(
     _: Annotated[dict, Depends(current_identity)],
     limit: int = Query(default=30, ge=1, le=100),
 ) -> list[dict[str, Any]]:
-    return request.app.state.safety_log_service.list(limit)
+    return request.app.state.safety_log_service.list(
+        limit, browser_session_id=browser_session_id(request)
+    )
 
 
 @router.get("/safety-logs/latest")
@@ -177,7 +259,22 @@ def latest_safety_log(
     _: Annotated[dict, Depends(current_identity)],
     assessment_date: str | None = Query(default=None, pattern=r"^20\d{2}-\d{2}-\d{2}$"),
 ) -> dict[str, Any] | None:
-    return request.app.state.safety_log_service.latest(assessment_date)
+    return request.app.state.safety_log_service.latest(
+        assessment_date, browser_session_id=browser_session_id(request)
+    )
+
+
+@router.delete("/browser-session", status_code=204)
+def clear_browser_session(
+    request: Request,
+    identity: Annotated[dict, Depends(current_identity)],
+) -> Response:
+    # Admin is the competition demo account and intentionally resets to its
+    # curated baseline when the page closes. Registered users keep project data.
+    if identity["username"].lower() == "admin":
+        cleanup_browser_session(request.app.state.database, browser_session_id(request))
+        request.app.state.project_knowledge_service.sync()
+    return Response(status_code=204)
 
 
 @router.get("/safety-logs/{log_id}")
@@ -316,17 +413,47 @@ def dashboard(
     identity: Annotated[dict, Depends(current_identity)],
 ) -> dict[str, Any]:
     db = request.app.state.database
-    risk = request.app.state.dynamic_risk_service.latest(include_test=False)
-    counts = {}
-    for key, table in {
-        "documents": "documents",
-        "audits": "audit_runs",
-        "tasks": "work_tasks",
-        "qa_records": "safety_qa_records",
-        "quiz_attempts": "quiz_attempts",
-    }.items():
-        count_row = db.fetch_one(f"SELECT COUNT(*) count FROM {table}") or {"count": 0}
-        counts[key] = int(count_row["count"])
+    session_scope = browser_session_id(request)
+    risk = request.app.state.dynamic_risk_service.latest(
+        include_test=False, browser_session_id=session_scope
+    )
+    counts = {
+        "documents": int(
+            (
+                db.fetch_one(
+                    """SELECT COUNT(DISTINCT document_id) count FROM audit_runs
+                       WHERE browser_session_id IN ('baseline', 'legacy', ?)""",
+                    (session_scope,),
+                )
+                or {"count": 0}
+            )["count"]
+        ),
+        "audits": int(
+            (
+                db.fetch_one(
+                    """SELECT COUNT(*) count FROM audit_runs
+                       WHERE browser_session_id IN ('baseline', 'legacy', ?)""",
+                    (session_scope,),
+                )
+                or {"count": 0}
+            )["count"]
+        ),
+        "tasks": int(
+            (
+                db.fetch_one(
+                    """SELECT COUNT(*) count FROM work_tasks
+                       WHERE browser_session_id IN ('baseline', 'legacy', ?)""",
+                    (session_scope,),
+                )
+                or {"count": 0}
+            )["count"]
+        ),
+        "qa_records": int(
+            (db.fetch_one("SELECT COUNT(*) count FROM safety_qa_records") or {"count": 0})[
+                "count"
+            ]
+        ),
+    }
     return {
         "project": identity["project_name"],
         "counts": counts,
@@ -342,7 +469,11 @@ def dynamic_risk_graph(
     assessment_date: str | None = Query(default=None),
 ) -> dict[str, Any]:
     target = assessment_date or date.today().isoformat()
-    run = request.app.state.dynamic_risk_service.latest(target, include_test=False)
+    run = request.app.state.dynamic_risk_service.latest(
+        target,
+        include_test=False,
+        browser_session_id=browser_session_id(request),
+    )
     return _risk_graph(run, identity["project_name"])
 
 
@@ -356,10 +487,19 @@ def recent_audits(
         """SELECT a.id, a.document_id, d.filename, a.status, a.current_node,
                   a.completed_rules, a.bundle_count, a.model_provider,
                   a.created_at, a.completed_at,
-                  (SELECT COUNT(*) FROM audit_items i WHERE i.run_id = a.id) item_count
+                  (SELECT COUNT(*) FROM audit_items i WHERE i.run_id = a.id) item_count,
+                  (SELECT COUNT(*) FROM plan_revisions p
+                   WHERE p.source_run_id = a.id) revision_count,
+                  (SELECT p.status FROM plan_revisions p
+                   WHERE p.source_run_id = a.id
+                   ORDER BY p.attempt_no DESC LIMIT 1) revision_status
            FROM audit_runs a JOIN documents d ON d.id = a.document_id
+           WHERE a.browser_session_id IN ('baseline', 'legacy', ?)
+             AND NOT EXISTS (
+               SELECT 1 FROM plan_revisions p WHERE p.revised_run_id = a.id
+           )
            ORDER BY a.created_at DESC LIMIT ?""",
-        (limit,),
+        (browser_session_id(request), limit),
     )
     return rows
 
@@ -374,13 +514,16 @@ def recent_tasks(
         worker_ref = identity.get("worker_ref") or identity["username"]
         rows = request.app.state.database.fetch_all(
             """SELECT * FROM work_tasks WHERE worker_ref = ?
+               AND browser_session_id IN ('baseline', 'legacy', ?)
                ORDER BY created_at DESC LIMIT ?""",
-            (worker_ref, min(200, limit * 4)),
+            (worker_ref, browser_session_id(request), min(200, limit * 4)),
         )
     else:
         rows = request.app.state.database.fetch_all(
-            "SELECT * FROM work_tasks ORDER BY created_at DESC LIMIT ?",
-            (min(200, limit * 4),),
+            """SELECT * FROM work_tasks
+               WHERE browser_session_id IN ('baseline', 'legacy', ?)
+               ORDER BY created_at DESC LIMIT ?""",
+            (browser_session_id(request), min(200, limit * 4)),
         )
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row in rows:

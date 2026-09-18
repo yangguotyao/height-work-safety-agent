@@ -38,6 +38,17 @@ def test_bocha_search_normalizes_results(test_settings):
     assert result["items"][0]["url"] == "https://www.mohurd.gov.cn/example"
 
 
+def test_unconfigured_search_hides_internal_setting_name(test_settings):
+    settings = test_settings.model_copy(
+        update={"bocha_api_key": None, "bocha_search_enabled": True}
+    )
+    result = BochaWebSearchService(settings).answer("查询最新建筑施工安全政策")
+
+    assert result["status"] == "unconfigured"
+    assert "BOCHA_API_KEY" not in result["answer"]
+    assert "暂未启用" in result["answer"]
+
+
 def test_general_question_uses_web_search_but_project_question_does_not(test_settings):
     app = create_app(test_settings)
 
@@ -81,3 +92,9 @@ def test_general_question_uses_web_search_but_project_question_does_not(test_set
         assert standard.status_code == 200, standard.text
         assert standard.json()["agent_name"] == "worker_agent"
         assert standard.json()["metadata"]["tools"] == ["worker.safety_qa"]
+
+        spoken_question = client.post(
+            "/api/v1/agent/messages", json={"message": "脚手架拆除作业要注意什么？"}
+        )
+        assert spoken_question.status_code == 200, spoken_question.text
+        assert spoken_question.json()["metadata"]["tools"] == ["worker.safety_qa"]

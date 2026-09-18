@@ -5,14 +5,16 @@ export interface ProjectWorkspace {
   id: string
   name: string
   code: string
+  city?: string
+  address?: string
   created_at: string
   updated_at: string
   active?: boolean
 }
 
 interface ProjectCatalog {
-  active_project_id: string
-  active_project: ProjectWorkspace
+  active_project_id: string | null
+  active_project: ProjectWorkspace | null
   projects: ProjectWorkspace[]
 }
 
@@ -39,12 +41,12 @@ export const useProjectStore = defineStore('project', {
         this.ready = true
       }
     },
-    async create(name: string) {
+    async create(name: string, city: string, address = '') {
       const project = await api<ProjectWorkspace>('/api/v1/projects', {
         method: 'POST',
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, city, address })
       })
-      await this.activate(project.id)
+      window.location.reload()
     },
     async activate(projectId: string) {
       if (projectId === this.active?.id || this.switching) return

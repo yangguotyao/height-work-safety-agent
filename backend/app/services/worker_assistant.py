@@ -39,7 +39,11 @@ class WorkerAssistantService:
             raise ValueError("每日任务只能关联已经完成的方案审计")
         return audit_run_id
 
-    def process_message(self, payload: WorkerAssistantMessageCreate) -> dict[str, Any]:
+    def process_message(
+        self,
+        payload: WorkerAssistantMessageCreate,
+        browser_session_id: str = "default-session",
+    ) -> dict[str, Any]:
         if payload.session_id:
             session = self.worker_repository.get_session(payload.session_id)
             if session["status"] == "completed":
@@ -72,11 +76,14 @@ class WorkerAssistantService:
         else:
             audit_run_id = self._validate_audit_run(payload.audit_run_id)
             if audit_run_id is None:
-                audit_run_id = self.worker_repository.latest_completed_audit_run_id()
+                audit_run_id = self.worker_repository.latest_completed_audit_run_id(
+                    browser_session_id
+                )
             session = self.worker_repository.create_session(
                 worker_ref=payload.worker_ref,
                 team_ref=payload.team_ref,
                 audit_run_id=audit_run_id,
+                browser_session_id=browser_session_id,
             )
 
         self.worker_repository.add_message(session["id"], "user", payload.message)

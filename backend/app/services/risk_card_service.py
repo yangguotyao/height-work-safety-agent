@@ -222,7 +222,11 @@ class RiskCardService:
             return []
         run = self.repository.get_audit_run(run_id, include_items=True)
         scenes = set(task["scenes"])
-        return [finding for finding in run["findings"] if finding["scene"] in scenes][:5]
+        return [
+            finding
+            for finding in run["findings"]
+            if finding["scene"] in scenes
+        ][:5]
 
     def _standard_evidence(self, rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
         evidences: list[dict[str, Any]] = []

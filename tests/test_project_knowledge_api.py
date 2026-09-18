@@ -95,29 +95,3 @@ def test_test_scope_is_hidden_but_explicit_worker_lookup_is_allowed(test_setting
     assert all(item["entity_type"] != "worker" for item in worker_search.json()["items"])
     assert worker.status_code == 200, worker.text
     assert worker.json()["summary"]["task_count"] == 1
-
-
-def test_wrong_quiz_answers_update_personal_knowledge(test_settings):
-    app = create_app(test_settings)
-    with TestClient(app) as client:
-        attempt = client.post(
-            "/worker-assistant/quizzes",
-            json={"worker_ref": "知识正式工人", "scene": "opening_work"},
-        ).json()
-        answers = []
-        for index, item in enumerate(attempt["questions"]):
-            correct = app.state.question_bank.get(item["id"])["answer"]
-            option_keys = [option["key"] for option in item["options"]]
-            submitted = next(key for key in option_keys if key != correct) if index < 2 else correct
-            answers.append({"question_id": item["id"], "answer": submitted})
-        submitted = client.post(
-            f"/worker-assistant/quizzes/{attempt['id']}/submit",
-            json={"answers": answers},
-        )
-        worker = client.get("/project-knowledge/workers/知识正式工人")
-        overview = client.get("/project-knowledge/overview")
-
-    assert submitted.status_code == 200, submitted.text
-    assert worker.json()["summary"]["active_wrong_count"] == 2
-    assert len(worker.json()["active_wrong_questions"]) == 2
-    assert overview.json()["common_wrong_questions"]

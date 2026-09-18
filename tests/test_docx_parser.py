@@ -80,3 +80,21 @@ def test_markdown_table_keeps_empty_cells_and_line_breaks(tmp_path):
 
     assert "| 栏杆 | 上杆1.2m<br>下杆0.6m |  |" in parsed.markdown
     assert parsed.segments[1].markdown.endswith("|  |")
+
+
+def test_recognizes_legacy_scaffold_calculation_boundaries(tmp_path):
+    path = tmp_path / "legacy-headings.docx"
+    document = Document()
+    document.add_heading("第一节 外脚手架搭设要求", level=2)
+    document.add_paragraph("外脚手架采用双排架。")
+    document.add_paragraph("内脚手架及砖架搭设")
+    document.add_paragraph("内脚手架采用满堂架。")
+    document.add_paragraph("脚手架计算书")
+    document.add_paragraph("悬挑式钢管脚手架计算书")
+    document.add_paragraph("立杆纵距1.5m。")
+    document.save(path)
+
+    parsed = parse_docx(path)
+
+    assert parsed.segments[1].heading_path.endswith("内脚手架及砖架搭设")
+    assert parsed.segments[2].heading_path == "脚手架计算书 > 悬挑式钢管脚手架计算书"

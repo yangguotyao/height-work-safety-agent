@@ -11,8 +11,8 @@ SCRYPT_P = 1
 
 
 def hash_password(password: str) -> str:
-    if len(password) < 10:
-        raise ValueError("密码至少需要10个字符")
+    if len(password) < 5:
+        raise ValueError("密码至少需要5个字符")
     salt = secrets.token_bytes(16)
     digest = hashlib.scrypt(
         password.encode("utf-8"), salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P
@@ -47,4 +47,3 @@ def new_session_token() -> str:
 
 def token_digest(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-

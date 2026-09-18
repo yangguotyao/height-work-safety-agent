@@ -62,6 +62,69 @@ def test_complete_backend_audit_flow_with_rag(test_settings, sample_docx):
         assert all(
             any(entry.get("chunk_id") for entry in item["basis"]) for item in body["items"]
         )
+        if not body["findings"]:
+            app.state.database.execute(
+                "UPDATE audit_items SET result='未说明' WHERE id=?",
+                (body["items"][0]["id"],),
+            )
+            body = client.get(f"/audits/{run_id}").json()
+        repository = app.state.repository
+        revised = repository.create_audit_run(
+            document_id=document_id,
+            model_provider="mock",
+            model_name=None,
+            rule_limit=body["candidate_rule_count"],
+        )
+        app.state.database.execute(
+            "UPDATE audit_runs SET status='completed', completed_at=created_at WHERE id=?",
+            (revised["id"],),
+        )
+        app.state.database.execute(
+            """INSERT INTO audit_items
+               (id, run_id, rule_id, scene, plan_quote, source_location, issue,
+                basis_json, risk_consequence, result, applicability_status,
+                applicability_reason, plan_obligation, plan_obligation_reason,
+                bundle_id, business_group_key, control_title, suggestion, confidence,
+                review_status, model_raw_json, created_at, updated_at)
+               SELECT lower(hex(randomblob(16))), ?, rule_id, scene, plan_quote,
+                      source_location, issue, basis_json, risk_consequence, '符合',
+                      applicability_status, applicability_reason, plan_obligation,
+                      plan_obligation_reason, bundle_id, business_group_key,
+                      control_title, suggestion, confidence, review_status,
+                      model_raw_json, created_at, updated_at
+               FROM audit_items WHERE run_id=?""",
+            (revised["id"], run_id),
+        )
+        revision = repository.create_plan_revision(run_id, revised["id"], "测试管理员")
+        compared = repository.complete_plan_revision(revision["id"])
+        assert compared["status"] == "closed"
+        assert compared["comparison"]["resolved_count"] == len(body["findings"])
+        assert compared["comparison"]["unresolved_count"] == 0
+        partial_source = body["findings"][0]
+        app.state.database.execute(
+            "UPDATE audit_items SET result='未说明' WHERE run_id=? AND rule_id=?",
+            (revised["id"], partial_source["rule_ids"][0]),
+        )
+        partial = repository.complete_plan_revision(revision["id"])
+        partial_detail = next(
+            item
+            for item in partial["comparison"]["details"]
+            if item["finding_id"] == partial_source["id"]
+        )
+        assert partial["status"] == "needs_revision"
+        expected_outcome = (
+            "partial" if len(partial_source["rule_ids"]) > 1 else "unresolved"
+        )
+        assert partial_detail["outcome"] == expected_outcome
+        assert partial_detail["remaining_issues"]
+        assert partial_detail["remaining_issues"][0]["issue"]
+        recent = client.get("/api/v1/audits/recent").json()
+        recent_ids = {item["id"] for item in recent}
+        assert run_id in recent_ids
+        assert revised["id"] not in recent_ids
+        source_row = next(item for item in recent if item["id"] == run_id)
+        assert source_row["revision_count"] == 1
+        assert source_row["revision_status"] == "needs_revision"
         model_calls = client.get(f"/audits/{run_id}/model-calls")
         assert model_calls.status_code == 200
         assert model_calls.json()["summary"]["call_count"] == 0

@@ -21,6 +21,7 @@ dependencies = [
   "langgraph>=0.2,<2",
   "mcp>=1.26,<3",
   "pywin32>=308; sys_platform == 'win32'",
+  "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

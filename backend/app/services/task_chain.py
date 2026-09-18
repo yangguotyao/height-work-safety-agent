@@ -4,8 +4,6 @@ from typing import Any
 
 from ..db import Database, json_load
 from .dynamic_risk import DynamicRiskService, logical_task_key
-from .learning_repository import LearningRepository
-from .question_bank import QuestionBank
 
 
 class TaskChainService:
@@ -15,13 +13,9 @@ class TaskChainService:
         self,
         database: Database,
         dynamic_risk: DynamicRiskService,
-        learning: LearningRepository,
-        question_bank: QuestionBank,
     ):
         self.db = database
         self.dynamic_risk = dynamic_risk
-        self.learning = learning
-        self.question_bank = question_bank
 
     @staticmethod
     def _task(row: dict[str, Any]) -> dict[str, Any]:
@@ -90,6 +84,7 @@ class TaskChainService:
             f"""SELECT i.id, i.run_id, i.scene, i.issue, i.suggestion, i.result,
                        i.final_result, i.final_text, i.review_status, i.created_at,
                        r.standard_code, r.clause, r.original_text,
+                       r.risk_level, r.rule_effect,
                        a.status run_status, a.completed_at, d.filename
                 FROM audit_items i
                 JOIN audit_rules r ON r.rule_id = i.rule_id
@@ -109,44 +104,6 @@ class TaskChainService:
             row["effective_result"] = effective
             result.append(row)
         return result[:12]
-
-    def _learning(self, worker_ref: str, duplicate_ids: set[str]) -> dict[str, Any]:
-        if not worker_ref:
-            return {"qa_records": [], "quiz_attempts": [], "active_wrong_count": 0}
-        placeholders = ",".join("?" for _ in duplicate_ids) or "?"
-        parameters = tuple(sorted(duplicate_ids)) or ("",)
-        qa_rows = self.db.fetch_all(
-            f"""SELECT * FROM safety_qa_records WHERE task_id IN ({placeholders})
-                ORDER BY created_at DESC LIMIT 20""",
-            parameters,
-        )
-        for row in qa_rows:
-            row["evidences"] = json_load(row.pop("evidence_json"), [])
-        attempts = self.db.fetch_all(
-            f"""SELECT id, worker_ref, task_id, scene, status, started_at, submitted_at
-                FROM quiz_attempts WHERE task_id IN ({placeholders})
-                ORDER BY started_at DESC LIMIT 20""",
-            parameters,
-        )
-        for attempt in attempts:
-            counts = self.db.fetch_one(
-                """SELECT COUNT(*) total, COALESCE(SUM(is_correct), 0) correct_count
-                   FROM quiz_answers WHERE attempt_id = ?""",
-                (attempt["id"],),
-            )
-            attempt.update(counts or {"total": 0, "correct_count": 0})
-        wrong_ids = self.learning.active_wrong_question_ids(worker_ref)
-        wrong_questions = [
-            self.question_bank.public(self.question_bank.questions[question_id])
-            for question_id in wrong_ids
-            if question_id in self.question_bank.questions
-        ]
-        return {
-            "qa_records": qa_rows,
-            "quiz_attempts": attempts,
-            "active_wrong_count": len(wrong_questions),
-            "wrong_questions": wrong_questions[:8],
-        }
 
     def get(self, task_id: str) -> dict[str, Any]:
         row = self.db.fetch_one("SELECT * FROM work_tasks WHERE id = ?", (task_id,))
@@ -177,7 +134,6 @@ class TaskChainService:
         risk_card = json_load(card_row["card_json"], {}) if card_row else None
         versions = self._risk_versions(representative, duplicate_ids)
         audits = self._audit_links(duplicates)
-        learning = self._learning(str(representative.get("worker_ref") or ""), duplicate_ids)
         timeline = [
             {
                 "type": "task",
@@ -204,16 +160,6 @@ class TaskChainService:
             }
             for version in reversed(versions)
         )
-        timeline.extend(
-            {
-                "type": "quiz",
-                "title": "关联场景测验已提交",
-                "detail": f"答对{attempt['correct_count']}/{attempt['total']}题",
-                "at": attempt["submitted_at"] or attempt["started_at"],
-            }
-            for attempt in learning["quiz_attempts"]
-            if attempt["status"] == "submitted"
-        )
         timeline.sort(key=lambda item: str(item.get("at") or ""))
         return {
             "task": representative,
@@ -232,7 +178,6 @@ class TaskChainService:
             "current_dynamic_risk": versions[0] if versions else None,
             "dynamic_risk_versions": versions,
             "audit_findings": audits,
-            "learning": learning,
             "timeline": timeline,
             "links": {
                 "worker": f"/#/worker?task={representative['id']}",

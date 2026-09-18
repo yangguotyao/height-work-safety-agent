@@ -19,15 +19,24 @@ class WorkerAssistantRepository:
         worker_ref: str = "",
         team_ref: str = "",
         audit_run_id: str | None = None,
+        browser_session_id: str = "default-session",
     ) -> dict[str, Any]:
         session_id = uuid4().hex
         now = utc_now()
         self.db.execute(
             """INSERT INTO worker_sessions
-               (id, worker_ref, team_ref, audit_run_id, status, draft_json, created_at,
-                updated_at)
-               VALUES (?, ?, ?, ?, 'collecting', '{}', ?, ?)""",
-            (session_id, worker_ref.strip(), team_ref.strip(), audit_run_id, now, now),
+               (id, browser_session_id, worker_ref, team_ref, audit_run_id, status,
+                draft_json, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, 'collecting', '{}', ?, ?)""",
+            (
+                session_id,
+                browser_session_id,
+                worker_ref.strip(),
+                team_ref.strip(),
+                audit_run_id,
+                now,
+                now,
+            ),
         )
         return self.get_session(session_id)
 
@@ -92,13 +101,14 @@ class WorkerAssistantRepository:
         )
         self.db.execute(
             """INSERT INTO work_tasks
-               (id, session_id, worker_ref, team_ref, audit_run_id, work_content,
+               (id, session_id, browser_session_id, worker_ref, team_ref, audit_run_id, work_content,
                 work_location, work_floor, work_time, normalized_task, scenes_json,
                 task_action, equipment_type, scheduled_date, time_window, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 task_id,
                 session["id"],
+                session["browser_session_id"],
                 session["worker_ref"],
                 session["team_ref"],
                 session["audit_run_id"],
@@ -150,9 +160,14 @@ class WorkerAssistantRepository:
         )
         return json_load(row["card_json"], {}) if row else None
 
-    def latest_completed_audit_run_id(self) -> str | None:
+    def latest_completed_audit_run_id(
+        self, browser_session_id: str = "default-session"
+    ) -> str | None:
         row = self.db.fetch_one(
             """SELECT id FROM audit_runs WHERE status = 'completed'
+               AND browser_session_id IN ('baseline', 'legacy', ?)
                ORDER BY COALESCE(completed_at, created_at) DESC LIMIT 1"""
+            ,
+            (browser_session_id,),
         )
         return str(row["id"]) if row else None

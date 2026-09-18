@@ -9,18 +9,10 @@ from backend.app.services.safety_learning import (
 )
 
 
-def test_default_question_bank_has_required_scene_coverage(test_settings):
+def test_internal_question_bank_has_required_scene_coverage(test_settings):
     app = create_app(test_settings)
-    with TestClient(app) as client:
-        response = client.get("/worker-assistant/question-bank/status")
-
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["question_count"] == 130
-    assert len(body["scenes"]) == 13
-    assert all(item["question_count"] >= 10 for item in body["scenes"])
-    assert all(item["single_choice_count"] >= 3 for item in body["scenes"])
-    assert all(item["true_false_count"] >= 2 for item in body["scenes"])
+    with TestClient(app):
+        assert len(app.state.question_bank.questions) == 130
 
     banned_phrases = (
         "只要作业人员经验丰富",
@@ -61,95 +53,19 @@ def test_default_question_bank_has_required_scene_coverage(test_settings):
     )
 
 
-def test_task_quiz_uses_scene_and_fixed_three_plus_two_mix(test_settings):
+def test_quiz_and_learning_endpoints_are_removed(test_settings):
     app = create_app(test_settings)
     with TestClient(app) as client:
-        task_response = client.post(
-            "/worker-assistant/messages",
-            json={
-                "message": "明天上午拆除悬挑式脚手架",
-                "worker_ref": "工人01",
-                "use_llm": False,
-            },
-        )
-        task_id = task_response.json()["task_id"]
-        response = client.post(
-            "/worker-assistant/quizzes",
-            json={"worker_ref": "工人01", "task_id": task_id},
-        )
-
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["scene"] == "scaffold_dismantling"
-    assert len(body["questions"]) == 5
-    assert sum(item["type"] == "single_choice" for item in body["questions"]) == 3
-    assert sum(item["type"] == "true_false" for item in body["questions"]) == 2
-    assert all("answer" not in item and "explanation" not in item for item in body["questions"])
-
-
-def test_quiz_submission_creates_personal_wrong_record_without_pass_result(test_settings):
-    app = create_app(test_settings)
-    with TestClient(app) as client:
-        attempt = client.post(
-            "/worker-assistant/quizzes",
-            json={"worker_ref": "工人A", "scene": "opening_work"},
-        ).json()
-        answers = []
-        for index, item in enumerate(attempt["questions"]):
-            correct = app.state.question_bank.get(item["id"])["answer"]
-            if index < 2:
-                option_keys = [option["key"] for option in item["options"]]
-                submitted = next(key for key in option_keys if key != correct)
-            else:
-                submitted = correct
-            answers.append({"question_id": item["id"], "answer": submitted})
-        result = client.post(
-            f"/worker-assistant/quizzes/{attempt['id']}/submit",
-            json={"answers": answers},
-        )
-        record = client.get("/worker-assistant/workers/工人A/learning-records")
-        other = client.get("/worker-assistant/workers/工人B/learning-records")
-
-    assert result.status_code == 200, result.text
-    result_body = result.json()
-    assert result_body["total"] == 5
-    assert result_body["correct_count"] == 3
-    assert "passed" not in result_body and "score" not in result_body
-    assert all(item["evidence"]["clause"] for item in result_body["answers"])
-    assert record.json()["active_wrong_count"] == 2
-    assert len(record.json()["recommendations"]) == 2
-    assert other.json()["active_wrong_count"] == 0
-
-
-def test_learning_cannot_attach_another_workers_task(test_settings):
-    app = create_app(test_settings)
-    with TestClient(app) as client:
-        task = client.post(
-            "/worker-assistant/messages",
-            json={
-                "worker_ref": "工人甲",
-                "message": "明天下午在12层拆除外墙模板",
-                "use_llm": False,
-            },
-        ).json()
         quiz = client.post(
             "/worker-assistant/quizzes",
-            json={"worker_ref": "工人乙", "task_id": task["task_id"]},
+            json={"worker_ref": "工人01", "scene": "opening_work"},
         )
-        qa = client.post(
-            "/worker-assistant/qa",
-            json={
-                "worker_ref": "工人乙",
-                "task_id": task["task_id"],
-                "question": "模板拆除前要检查什么？",
-                "use_llm": False,
-            },
-        )
+        learning = client.get("/worker-assistant/workers/工人01/learning-records")
+        bank = client.get("/worker-assistant/question-bank/status")
 
-    assert quiz.status_code == 400
-    assert qa.status_code == 400
-    assert "不属于当前工人标识" in quiz.json()["detail"]
-    assert "不属于当前工人标识" in qa.json()["detail"]
+    assert quiz.status_code == 404
+    assert learning.status_code == 404
+    assert bank.status_code == 404
 
 
 def test_safety_qa_is_traceable_and_does_not_mix_scaffold_erection_rule(test_settings):

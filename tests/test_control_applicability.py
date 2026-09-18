@@ -57,6 +57,59 @@ def test_controls_are_built_before_atomic_units_with_whole_document_evidence():
     assert batch_controls(controls) == [controls]
 
 
+def test_ground_work_scaffold_excludes_support_and_cantilever_only_rules():
+    segments = [
+        {
+            "id": "ground",
+            "sequence_no": 1,
+            "heading_path": "架体形式",
+            "location": "P001",
+            "text": "本工程采用落地式作业脚手架。",
+        }
+    ]
+    rules = [
+        {
+            "rule_id": "JSJ-WORK",
+            "scene": "施工脚手架",
+            "process": "作业层防护",
+            "trigger_condition": "使用作业脚手架时",
+            "requirement": "作业层应满铺脚手板",
+            "threshold": "",
+        },
+        {
+            "rule_id": "JSJ-SUPPORT",
+            "scene": "施工脚手架",
+            "process": "支撑架加载",
+            "trigger_condition": "采用支撑脚手架时",
+            "requirement": "支撑脚手架加载时架体下严禁有人",
+            "threshold": "",
+        },
+        {
+            "rule_id": "JSJ-CANTILEVER",
+            "scene": "施工脚手架",
+            "process": "悬挑构造",
+            "trigger_condition": "采用悬挑脚手架时",
+            "requirement": "悬挑脚手架立杆底部应可靠连接",
+            "threshold": "",
+        },
+    ]
+    instances = [
+        {
+            "id": "ground-object",
+            "scene": "施工脚手架",
+            "title": "落地式脚手架",
+            "location": "P001",
+            "segment_ids": ["ground"],
+            "object_type": "work_scaffold",
+            "scaffold_subtype": "ground",
+        }
+    ]
+
+    controls = build_control_candidates(rules, instances, segments)
+
+    assert [rule["rule_id"] for rule in controls[0]["rules"]] == ["JSJ-WORK"]
+
+
 def test_control_gate_keeps_at_least_one_trigger_evidence_for_each_rule():
     segments = [
         {

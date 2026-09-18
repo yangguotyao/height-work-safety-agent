@@ -10,6 +10,7 @@ from backend.app.config import PROJECT_ROOT, Settings
 @pytest.fixture
 def test_settings(tmp_path: Path) -> Settings:
     return Settings(
+        enforce_auth=False,
         model_provider="mock",
         model_api_key=None,
         model_base_url=None,

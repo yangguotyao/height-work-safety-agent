@@ -37,14 +37,30 @@ class PlatformRepository:
             "UPDATE platform_projects SET name = ?, updated_at = ? WHERE id = ?",
             (self.project_name, now, DEFAULT_PROJECT_ID),
         )
-        if self.db.fetch_one("SELECT id FROM platform_users LIMIT 1"):
+        normalized = username.strip().lower()
+        user = self.db.fetch_one(
+            "SELECT id FROM platform_users WHERE username=?", (normalized,)
+        )
+        if user is None:
+            self.create_user(
+                username=normalized,
+                password=password or uuid4().hex,
+                display_name=display_name,
+                system_role="admin",
+                project_id=DEFAULT_PROJECT_ID,
+                project_role="admin",
+            )
             return
-        self.create_user(
-            username=username,
-            password=password or uuid4().hex,
-            display_name=display_name,
-            system_role="admin",
-            project_role="admin",
+        if password:
+            self.db.execute(
+                "UPDATE platform_users SET password_hash=?, display_name=?, active=1, updated_at=? WHERE id=?",
+                (hash_password(password), display_name, now, user["id"]),
+            )
+        self.db.execute(
+            """INSERT OR IGNORE INTO platform_project_members
+               (project_id, user_id, project_role, worker_ref, team_ref, created_at)
+               VALUES (?, ?, 'admin', '', '', ?)""",
+            (DEFAULT_PROJECT_ID, user["id"], now),
         )
 
     def workspace_identity(self, workspace_id: str, workspace_name: str) -> dict[str, Any]:
@@ -76,9 +92,9 @@ class PlatformRepository:
             "username": row["username"],
             "display_name": row["display_name"],
             "system_role": row["system_role"],
-            "project_id": row.get("project_id", DEFAULT_PROJECT_ID),
+            "project_id": row.get("project_id"),
             "project_name": row.get("project_name", ""),
-            "project_role": row.get("project_role", "worker"),
+            "project_role": row.get("project_role") or "admin",
             "worker_ref": row.get("worker_ref", ""),
             "team_ref": row.get("team_ref", ""),
         }
@@ -91,6 +107,7 @@ class PlatformRepository:
         display_name: str,
         system_role: str = "user",
         project_role: str = "worker",
+        project_id: str | None = None,
         worker_ref: str = "",
         team_ref: str = "",
     ) -> dict[str, Any]:
@@ -118,19 +135,20 @@ class PlatformRepository:
                         now,
                     ),
                 )
-                connection.execute(
-                    """INSERT INTO platform_project_members
-                       (project_id, user_id, project_role, worker_ref, team_ref, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    (
-                        DEFAULT_PROJECT_ID,
-                        user_id,
-                        project_role,
-                        worker_ref.strip(),
-                        team_ref.strip(),
-                        now,
-                    ),
-                )
+                if project_id:
+                    connection.execute(
+                        """INSERT INTO platform_project_members
+                           (project_id, user_id, project_role, worker_ref, team_ref, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        (
+                            project_id,
+                            user_id,
+                            project_role,
+                            worker_ref.strip(),
+                            team_ref.strip(),
+                            now,
+                        ),
+                    )
         except sqlite3.IntegrityError as exc:
             raise ValueError("用户名已存在") from exc
         return self.get_user(user_id)
@@ -149,12 +167,9 @@ class PlatformRepository:
 
     def get_user(self, user_id: str) -> dict[str, Any]:
         row = self.db.fetch_one(
-            """SELECT u.*, m.project_id, p.name project_name, m.project_role,
-                      m.worker_ref, m.team_ref
-               FROM platform_users u
-               JOIN platform_project_members m ON m.user_id = u.id
-               JOIN platform_projects p ON p.id = m.project_id
-               WHERE u.id = ? AND u.active = 1 AND p.active = 1""",
+            """SELECT u.*, NULL project_id, '' project_name, NULL project_role,
+                      '' worker_ref, '' team_ref
+               FROM platform_users u WHERE u.id = ? AND u.active = 1""",
             (user_id,),
         )
         if row is None:
@@ -163,14 +178,67 @@ class PlatformRepository:
 
     def list_users(self) -> list[dict[str, Any]]:
         rows = self.db.fetch_all(
-            """SELECT u.*, m.project_id, p.name project_name, m.project_role,
-                      m.worker_ref, m.team_ref
-               FROM platform_users u
-               JOIN platform_project_members m ON m.user_id = u.id
-               JOIN platform_projects p ON p.id = m.project_id
-               ORDER BY u.created_at"""
+            """SELECT u.*, NULL project_id, '' project_name, NULL project_role,
+                      '' worker_ref, '' team_ref,
+                      (SELECT COUNT(*) FROM platform_project_members m
+                       WHERE m.user_id=u.id) project_count
+               FROM platform_users u ORDER BY u.created_at"""
         )
-        return [self._public_identity(row) | {"active": bool(row["active"])} for row in rows]
+        return [
+            self._public_identity(row)
+            | {"active": bool(row["active"]), "project_count": row["project_count"]}
+            for row in rows
+        ]
+
+    def register_project(
+        self, *, project_id: str, name: str, code: str, owner_user_id: str
+    ) -> None:
+        now = utc_now()
+        with self.db.connect() as connection:
+            connection.execute(
+                """INSERT INTO platform_projects
+                   (id, name, code, active, created_at, updated_at)
+                   VALUES (?, ?, ?, 1, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                     name=excluded.name, code=excluded.code, active=1,
+                     updated_at=excluded.updated_at""",
+                (project_id, name, code, now, now),
+            )
+            connection.execute(
+                """INSERT OR IGNORE INTO platform_project_members
+                   (project_id, user_id, project_role, worker_ref, team_ref, created_at)
+                   VALUES (?, ?, 'admin', '', '', ?)""",
+                (project_id, owner_user_id, now),
+            )
+
+    def update_project(self, project_id: str, name: str) -> None:
+        self.db.execute(
+            "UPDATE platform_projects SET name=?, updated_at=? WHERE id=?",
+            (name, utc_now(), project_id),
+        )
+
+    def delete_project(self, project_id: str) -> None:
+        with self.db.connect() as connection:
+            connection.execute(
+                "UPDATE platform_auth_sessions SET active_project_id=NULL WHERE active_project_id=?",
+                (project_id,),
+            )
+            connection.execute("DELETE FROM platform_projects WHERE id=?", (project_id,))
+
+    def projects_for_user(self, user_id: str) -> list[dict[str, Any]]:
+        return self.db.fetch_all(
+            """SELECT p.id, p.name, p.code, m.project_role
+               FROM platform_project_members m
+               JOIN platform_projects p ON p.id=m.project_id
+               WHERE m.user_id=? AND p.active=1 ORDER BY m.created_at""",
+            (user_id,),
+        )
+
+    def user_has_project(self, user_id: str, project_id: str) -> bool:
+        return self.db.fetch_one(
+            "SELECT 1 ok FROM platform_project_members WHERE user_id=? AND project_id=?",
+            (user_id, project_id),
+        ) is not None
 
     def login(
         self, username: str, password: str, *, user_agent: str = "", remote_addr: str = ""
@@ -186,12 +254,15 @@ class PlatformRepository:
         expires = now + timedelta(hours=self.session_hours)
         self.db.execute(
             """INSERT INTO platform_auth_sessions
-               (token_hash, user_id, expires_at, created_at, last_seen_at,
+               (token_hash, user_id, active_project_id, expires_at, created_at, last_seen_at,
                 user_agent, remote_addr)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 token_digest(token),
                 row["id"],
+                (
+                    (self.projects_for_user(str(row["id"])) or [{}])[0].get("id")
+                ),
                 expires.isoformat(),
                 now.isoformat(),
                 now.isoformat(),
@@ -199,13 +270,13 @@ class PlatformRepository:
                 remote_addr[:100],
             ),
         )
-        return token, self.get_user(str(row["id"]))
+        return token, self.identity_for_token(token) or self.get_user(str(row["id"]))
 
     def identity_for_token(self, token: str) -> dict[str, Any] | None:
         if not token:
             return None
         row = self.db.fetch_one(
-            """SELECT user_id, expires_at FROM platform_auth_sessions
+            """SELECT user_id, active_project_id, expires_at FROM platform_auth_sessions
                WHERE token_hash = ?""",
             (token_digest(token),),
         )
@@ -225,9 +296,51 @@ class PlatformRepository:
             (utc_now(), token_digest(token)),
         )
         try:
-            return self.get_user(str(row["user_id"]))
+            user = self.get_user(str(row["user_id"]))
+            project_id = row.get("active_project_id")
+            if not project_id:
+                return user
+            membership = self.db.fetch_one(
+                """SELECT m.project_role, m.worker_ref, m.team_ref, p.name project_name
+                   FROM platform_project_members m
+                   JOIN platform_projects p ON p.id=m.project_id
+                   WHERE m.user_id=? AND m.project_id=? AND p.active=1""",
+                (row["user_id"], project_id),
+            )
+            if membership is None:
+                return user
+            return user | {
+                "project_id": project_id,
+                "project_name": membership["project_name"],
+                "project_role": membership["project_role"],
+                "worker_ref": membership["worker_ref"],
+                "team_ref": membership["team_ref"],
+            }
         except KeyError:
             return None
+
+    def set_session_project(self, token: str, user_id: str, project_id: str) -> None:
+        if not self.user_has_project(user_id, project_id):
+            raise PermissionError("当前账号无权访问该项目")
+        self.db.execute(
+            "UPDATE platform_auth_sessions SET active_project_id=?, last_seen_at=? WHERE token_hash=? AND user_id=?",
+            (project_id, utc_now(), token_digest(token), user_id),
+        )
+
+    def deactivate_user(self, user_id: str, active: bool) -> None:
+        self.db.execute(
+            "UPDATE platform_users SET active=?, updated_at=? WHERE id=? AND system_role!='admin'",
+            (int(active), utc_now(), user_id),
+        )
+        if not active:
+            self.db.execute("DELETE FROM platform_auth_sessions WHERE user_id=?", (user_id,))
+
+    def reset_password(self, user_id: str, password: str) -> None:
+        self.db.execute(
+            "UPDATE platform_users SET password_hash=?, updated_at=? WHERE id=?",
+            (hash_password(password), utc_now(), user_id),
+        )
+        self.db.execute("DELETE FROM platform_auth_sessions WHERE user_id=?", (user_id,))
 
     def logout(self, token: str) -> None:
         if token:

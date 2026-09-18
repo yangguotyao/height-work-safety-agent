@@ -42,11 +42,6 @@ class AssessmentInput(BaseModel):
     refresh_weather: bool = False
 
 
-class QuizInput(BaseModel):
-    task_id: str | None = None
-    scene: str | None = None
-
-
 class SafetyLogInput(BaseModel):
     assessment_date: str | None = None
 
@@ -247,16 +242,6 @@ def build_tool_registry(repository: PlatformRepository) -> ToolRegistry:
             context.app.state.project_knowledge_service.sync()
         return result
 
-    def learning_profile(context: ToolContext, _: dict[str, Any]) -> dict[str, Any]:
-        worker_ref = context.identity.get("worker_ref") or context.identity["username"]
-        return context.app.state.quiz_service.learning_record(worker_ref)
-
-    def create_quiz(context: ToolContext, data: dict[str, Any]) -> dict[str, Any]:
-        worker_ref = context.identity.get("worker_ref") or context.identity["username"]
-        return context.app.state.quiz_service.create(
-            worker_ref=worker_ref, task_id=data.get("task_id"), scene=data.get("scene")
-        )
-
     def generate_safety_log(context: ToolContext, data: dict[str, Any]) -> dict[str, Any]:
         return context.app.state.safety_log_service.generate(data.get("assessment_date"))
 
@@ -325,23 +310,6 @@ def build_tool_registry(repository: PlatformRepository) -> ToolRegistry:
             "通过连续对话采集每日任务并生成风险卡。",
             TaskMessageInput,
             task_intake,
-            frozenset({"worker_agent"}),
-            ALL_ROLES,
-            mutating=True,
-        ),
-        ToolSpec(
-            "worker.learning_profile",
-            "读取当前工人的问答、测验、错题和推荐记录。",
-            EmptyInput,
-            learning_profile,
-            frozenset({"worker_agent", "risk_agent"}),
-            ALL_ROLES,
-        ),
-        ToolSpec(
-            "worker.create_quiz",
-            "按任务或场景为当前工人生成5题测验。",
-            QuizInput,
-            create_quiz,
             frozenset({"worker_agent"}),
             ALL_ROLES,
             mutating=True,

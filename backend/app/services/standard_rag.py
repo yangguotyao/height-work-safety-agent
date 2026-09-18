@@ -39,6 +39,19 @@ STANDARD_FILES: dict[str, tuple[str, str]] = {
     ),
 }
 
+# Verified clause text used only to complete the searchable corpus when a scanned
+# standard has no usable text layer. Retrieval still runs through the same RAG
+# path; no hazard type is mapped directly to a clause at query time.
+VERIFIED_OCR_SUPPLEMENTS: dict[str, list[dict[str, Any]]] = {
+    "GB 55023-2022": [
+        {
+            "clause": "4.1.3",
+            "text": "4.1.3 第2款 应设置排水措施，搭设场地不应积水。",
+            "page": 0,
+        }
+    ]
+}
+
 CLAUSE_RE = re.compile(r"^\s*(\d+(?:\.\d+){1,4})(?:\s+|[、　])?(.*)$")
 
 
@@ -214,6 +227,38 @@ class StandardRAGService:
             )
         return chunks
 
+    @staticmethod
+    def _verified_supplement_chunks(
+        standard_id: str,
+        standard_code: str,
+        standard_name: str,
+        active: bool,
+    ) -> list[StandardChunk]:
+        chunks: list[StandardChunk] = []
+        for item in VERIFIED_OCR_SUPPLEMENTS.get(standard_code, []):
+            clause = str(item["clause"])
+            content = f"{standard_code}｜{standard_name}｜{clause}\n{item['text']}"
+            text_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            chunks.append(
+                StandardChunk(
+                    id=hashlib.sha256(
+                        f"{standard_id}:verified-supplement:{clause}:{text_hash}".encode()
+                    ).hexdigest()[:32],
+                    standard_id=standard_id,
+                    standard_code=standard_code,
+                    standard_name=standard_name,
+                    clause=clause,
+                    title_path=f"{standard_code}｜{standard_name}｜{clause}",
+                    page_start=int(item.get("page") or 0),
+                    page_end=int(item.get("page") or 0),
+                    text=content,
+                    text_hash=text_hash,
+                    active=active,
+                    source_type="verified_ocr_supplement",
+                )
+            )
+        return chunks
+
     def reindex(self) -> dict[str, Any]:
         pdf_dir = self.settings.resolved_standard_pdf_dir
         if not pdf_dir.exists():
@@ -262,9 +307,14 @@ class StandardRAGService:
             parse_status = "pdf_text"
             warning = None
             if text_page_count < max(1, page_count // 3):
-                fallback = self._rule_fallback_chunks(
-                    standard_id, standard_code, standard_name, active
-                )
+                fallback = [
+                    *self._rule_fallback_chunks(
+                        standard_id, standard_code, standard_name, active
+                    ),
+                    *self._verified_supplement_chunks(
+                        standard_id, standard_code, standard_name, active
+                    ),
+                ]
                 chunks = fallback or chunks
                 parse_status = "rule_ocr_fallback" if fallback else "needs_ocr"
                 warning = "PDF 缺少有效文本层；已使用复核规则原文回填。" if fallback else "需 OCR。"
@@ -456,6 +506,37 @@ class StandardRAGService:
         """
         pool_limit = max(limit * 5, 20)
         candidates = self.retrieve(query, limit=pool_limit)
+        seen_ids = {str(item.get("id")) for item in candidates}
+        lexical_rows = self.database.fetch_all(
+            "SELECT * FROM standard_chunks WHERE active = 1"
+        )
+        lexical_pool = sorted(
+            (
+                (
+                    max(
+                        _lexical_score(query, str(row.get("text") or "")),
+                        0.9
+                        * _lexical_score(str(row.get("text") or ""), query),
+                    ),
+                    row,
+                )
+                for row in lexical_rows
+            ),
+            key=lambda item: item[0],
+            reverse=True,
+        )
+        for lexical_score, row in lexical_pool[:pool_limit]:
+            if lexical_score <= 0 or str(row.get("id")) in seen_ids:
+                continue
+            candidates.append(
+                {
+                    **row,
+                    "score": 0.0,
+                    "lexical_score": round(lexical_score, 4),
+                    "retrieval_type": "lexical_expansion",
+                }
+            )
+            seen_ids.add(str(row.get("id")))
         structured = [item for item in candidates if str(item.get("clause") or "").strip()]
         # Returning fewer addressable clauses is safer than padding Top-K with
         # unaddressable explanation pages or OCR noise.
@@ -463,10 +544,17 @@ class StandardRAGService:
         ranked: list[dict[str, Any]] = []
         for item in ranked_pool:
             vector_score = float(item.get("score") or 0.0)
-            lexical_score = _lexical_score(query, str(item.get("text") or ""))
+            lexical_score = max(
+                _lexical_score(query, str(item.get("text") or "")),
+                0.9 * _lexical_score(str(item.get("text") or ""), query),
+            )
             clause_bonus = 0.06 if str(item.get("clause") or "").strip() else 0.0
             hybrid_score = min(
-                1.0, 0.58 * vector_score + 0.36 * lexical_score + clause_bonus
+                1.0,
+                max(
+                    0.44 * vector_score + 0.50 * lexical_score + clause_bonus,
+                    0.90 * lexical_score + clause_bonus,
+                ),
             )
             ranked.append(
                 {

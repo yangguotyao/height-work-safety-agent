@@ -308,6 +308,18 @@ def test_scaffold_special_scheme_keeps_its_own_engineering_rules():
     assert filter_rules_for_document_scope(rules, segments) == rules
 
 
+def test_recommended_rule_is_reference_only_not_a_missing_plan_item():
+    decision = classify_plan_obligation(
+        {
+            "scene": "高处作业综合管理",
+            "rule_effect": "推荐/允许",
+            "requirement": "验收可分层或分阶段进行",
+        }
+    )
+
+    assert decision.obligation is PlanObligation.REFERENCE_ONLY
+
+
 def test_business_findings_deduplicate_plan_segments_by_source_id():
     base = {
         "scene": "施工脚手架",
@@ -384,6 +396,74 @@ def test_business_findings_deduplicate_same_standard_passage_across_rules():
     findings = build_business_findings([first, second])
 
     assert len(findings[0]["basis"]) == 1
+
+
+def test_business_findings_merge_same_control_across_objects_despite_wording_changes():
+    base = {
+        "scene": "施工脚手架",
+        "control_title": "作业层防护",
+        "result": AuditResult.NOT_SPECIFIED.value,
+        "issue": "方案未说明脚手板固定方式。",
+        "risk_consequence": "可能发生高处坠落。",
+        "plan_quote": "作业层铺设脚手板。",
+        "source_location": "P044",
+        "confidence": 0.8,
+        "basis": [],
+        "evidences": [],
+    }
+    findings = build_business_findings(
+        [
+            {
+                **base,
+                "rule_id": "JSJ-045",
+                "business_group_key": "ground|作业层防护",
+                "suggestion": "补充脚手板与水平杆可靠固定的连接方式。",
+            },
+            {
+                **base,
+                "rule_id": "JSJ-045",
+                "business_group_key": "cantilever|作业层防护",
+                "suggestion": "在作业层章节明确脚手板固定做法。",
+            },
+        ]
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["rule_ids"] == ["JSJ-045"]
+    assert findings[0]["suggestion"].count("\n-") == 0
+
+
+def test_business_findings_hide_duplicate_dismantling_rule_from_another_control():
+    base = {
+        "scene": "施工脚手架",
+        "result": AuditResult.NOT_SPECIFIED.value,
+        "issue": "方案未说明同层杆件先外后内拆除。",
+        "risk_consequence": "拆除顺序不当可能导致失稳。",
+        "suggestion": "补充同层杆件按先外后内顺序拆除。",
+        "plan_quote": "脚手架应逐层拆除。",
+        "source_location": "P091",
+        "confidence": 0.8,
+        "basis": [],
+        "evidences": [],
+    }
+    findings = build_business_findings(
+        [
+            {
+                **base,
+                "rule_id": "JSJ-019",
+                "control_title": "脚手架搭设、使用与拆除",
+            },
+            {
+                **base,
+                "rule_id": "JSJ-059",
+                "scene": "脚手架搭设与拆除",
+                "control_title": "架体拆除",
+            },
+        ]
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["rule_ids"] == ["JSJ-019"]
 
 
 def test_user_facing_decision_replaces_internal_segment_id_with_location():

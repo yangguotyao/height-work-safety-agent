@@ -12,7 +12,7 @@ from .tools import ToolContext, ToolRegistry
 AGENT_LABELS = {
     "coordinator": "总协调 Agent",
     "audit_agent": "方案审查 Agent",
-    "worker_agent": "安全培训 Agent",
+    "worker_agent": "班前任务 Agent",
     "knowledge_agent": "安全知识图谱 Agent",
     "risk_agent": "风险分析 Agent",
     "safety_log_agent": "安全日志 Agent",
@@ -106,25 +106,12 @@ class WorkerAgent(SpecialistAgent):
 
     def run(self, state: UnifiedAgentState) -> dict[str, Any]:
         message = state["user_message"]
-        if _contains_any(message, ("测验", "测试题", "做题", "练习题")):
-            scene_match = re.search(r"(?:关于|来一组|做一组)([^，。]{2,20})(?:的|测验|题)", message)
-            arguments = {"scene": scene_match.group(1).strip() if scene_match else None}
-            result = self.invoke_tool(state, "worker.create_quiz", arguments)
-            scene_name = result.get("scene_name", result.get("scene", "当前场景"))
-            text = f"已生成 {scene_name} 5题测验，请在测验页面完成。"
-            tool = "worker.create_quiz"
-        elif _contains_any(message, ("学习记录", "错题", "学习情况", "复习")):
-            result = self.invoke_tool(state, "worker.learning_profile", {})
-            text = (
-                f"你目前有 {len(result.get('active_wrong_questions', []))} 道待复习错题，"
-                f"累计完成 {len(result.get('quiz_history', []))} 次测验。"
-            )
-            tool = "worker.learning_profile"
-        elif _contains_any(
+        if _contains_any(
             message,
             ("今天", "明天", "上午", "下午", "晚上", "层", "楼", "去拆", "去装", "作业"),
         ) and not _contains_any(
-            message, ("为什么", "能不能", "是否", "要求", "怎么", "吗？", "吗")
+            message,
+            ("为什么", "什么", "哪些", "注意", "能不能", "是否", "要求", "怎么", "吗？", "吗"),
         ):
             result = self.invoke_tool(state, "worker.task_intake", {"message": message})
             text = result.get("assistant_message", "任务信息已处理。")
@@ -337,9 +324,6 @@ class UnifiedAgentOrchestrator:
                 "模板",
                 "临边",
                 "洞口",
-                "测验",
-                "错题",
-                "复习",
                 "规范",
                 "标准",
                 "条款",
@@ -353,7 +337,7 @@ class UnifiedAgentOrchestrator:
         if not selected:
             project_terms = (
                 "项目", "施工", "高处", "作业", "安全", "方案", "审查", "审计", "风险",
-                "任务", "培训", "测验", "错题", "规范", "条款", "脚手架", "模板", "临边",
+                "任务", "培训", "规范", "条款", "脚手架", "模板", "临边",
                 "洞口", "吊篮", "屋面", "天气", "事故", "知识图谱",
             )
             web_markers = ("联网", "网页", "网上", "全网", "新闻", "最新消息")

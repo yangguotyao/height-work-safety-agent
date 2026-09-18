@@ -1,16 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
-import { api } from '../api'
+import { computed, onMounted, ref } from 'vue'
 import TaskChainDrawer from '../components/TaskChainDrawer.vue'
+import { api } from '../api'
 import { useProjectStore } from '../stores/project'
-
-interface Message {
-  id?: string
-  role: 'user' | 'assistant'
-  content: string
-  agent_name?: string
-  metadata?: any
-}
 
 const projects = useProjectStore()
 const logs = ref<any[]>([])
@@ -19,46 +11,45 @@ const logDate = ref(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai'
 const generating = ref(false)
 const logError = ref('')
 const chainTaskId = ref<string | null>(null)
-const conversations = ref<any[]>([])
-const conversationId = ref<string | null>(null)
-const messages = ref<Message[]>([])
-const input = ref('')
-const sending = ref(false)
-const chatError = ref('')
-const chatEl = ref<HTMLElement | null>(null)
-const examples = [
-  '解释今天风险等级最高的任务',
-  '查询脚手架拆除相关项目依据',
-  '生成今天的高处作业安全日志',
-  '联网查询今年人工智能有什么新进展？'
-]
 
-const summary = computed(() => selectedLog.value?.content?.summary || {})
-const tasks = computed(() => selectedLog.value?.content?.tasks || [])
-const auditFindings = computed(() => selectedLog.value?.content?.audit_findings || [])
-const evidenceSources = computed(() => selectedLog.value?.content?.evidence_sources || [])
+const content = computed(() => selectedLog.value?.content || {})
+const summary = computed(() => content.value.summary || {})
+const tasks = computed(() => content.value.tasks || [])
+const planAudits = computed(() => content.value.plan_audits || [])
+const planRevisions = computed(() => content.value.plan_revisions || [])
+const inspections = computed(() => content.value.onsite_inspections || [])
+const onsiteItems = computed(() => content.value.onsite_rectification || [])
+const timeline = computed(() => content.value.timeline || [])
+const openItems = computed(() => content.value.open_items || [])
+const evidenceSources = computed(() => content.value.evidence_sources || [])
+const weather = computed(() => content.value.weather || {})
+
+const statusLabels: Record<string, string> = {
+  pending_rectification: '待整改', rectifying: '整改中', pending_review: '待复核',
+  closed: '已关闭', processing: '处理中', needs_revision: '需继续修订',
+  completed: '已完成', analyzing: '分析中', accepted: '已确认', rejected: '不构成隐患'
+}
+
+function statusLabel(value?: string) {
+  return statusLabels[value || ''] || value || '已记录'
+}
 
 function riskLabel(level?: string) {
-  return level === 'red' ? '红色' : level === 'yellow' ? '黄色' : '绿色'
+  return level === 'red' ? '高风险' : level === 'yellow' ? '较高风险' : '一般风险'
 }
 
-function agentLabel(name?: string) {
-  return ({
-    coordinator: '总协调 Agent', audit_agent: '方案审查 Agent', worker_agent: '工人助手 Agent',
-    knowledge_agent: '安全知识图谱 Agent', risk_agent: '动态风险 Agent',
-    safety_log_agent: '安全日志 Agent', web_agent: '联网问答 Agent'
-  } as Record<string, string>)[name || ''] || '总协调 Agent'
+function timeText(value?: string) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('zh-CN', { hour12: false })
 }
 
-function toolLabel(name: string) {
-  return ({
-    'risk.latest': '读取动态风险', 'audit.latest': '读取方案审查',
-    'knowledge.search': '检索项目知识', 'knowledge.accident_search': '检索事故案例',
-    'worker.safety_qa': '规范安全问答', 'worker.task_intake': '登记作业任务',
-    'worker.learning_profile': '读取学习记录', 'worker.create_quiz': '生成场景测验',
-    'safety_log.generate': '生成安全日志', 'safety_log.latest': '读取安全日志',
-    'web.search': '博查联网搜索', 'system.overview': '读取项目概览'
-  } as Record<string, string>)[name] || name
+function actorText(value?: string) {
+  return value && /qwen|模型|model/i.test(value) ? 'AI辅助识别' : value || '系统记录'
+}
+
+function revisionRemaining(item: any) {
+  const comparison = item.comparison || {}
+  return Math.max(Number(comparison.original_finding_count || 0) - Number(comparison.resolved_count || 0), 0)
 }
 
 async function loadLogs(selectId?: string) {
@@ -85,149 +76,82 @@ async function generateLog() {
   }
 }
 
-function openLog(log: any) {
-  if (!log) return
-  selectedLog.value = log
-  logDate.value = log.assessment_date
-}
-
 function selectLog(event: Event) {
   const id = (event.target as HTMLSelectElement).value
-  openLog(logs.value.find(item => item.id === id))
+  const selected = logs.value.find(item => item.id === id)
+  if (!selected) return
+  selectedLog.value = selected
+  logDate.value = selected.assessment_date
 }
 
 function downloadLog() {
-  if (!selectedLog.value) return
-  window.location.href = `/api/v1/safety-logs/${encodeURIComponent(selectedLog.value.id)}/download`
-}
-
-async function loadConversations() {
-  conversations.value = await api('/api/v1/agent/conversations')
-}
-
-async function newConversation() {
-  conversationId.value = null
-  messages.value = []
-  input.value = ''
-}
-
-async function send(text?: string) {
-  const content = (text ?? input.value).trim()
-  if (!content || sending.value) return
-  messages.value.push({ role: 'user', content })
-  input.value = ''
-  sending.value = true
-  chatError.value = ''
-  await nextTick()
-  chatEl.value?.scrollTo({ top: chatEl.value.scrollHeight, behavior: 'smooth' })
-  try {
-    const result: any = await api('/api/v1/agent/messages', {
-      method: 'POST',
-      body: JSON.stringify({ conversation_id: conversationId.value, message: content })
-    })
-    conversationId.value = result.conversation_id
-    messages.value.push(result.message)
-    if (result.metadata?.tools?.includes('safety_log.generate')) await loadLogs()
-    await loadConversations()
-  } catch (cause) {
-    chatError.value = cause instanceof Error ? cause.message : '问答请求失败'
-    messages.value.pop()
-  } finally {
-    sending.value = false
-    await nextTick()
-    chatEl.value?.scrollTo({ top: chatEl.value.scrollHeight, behavior: 'smooth' })
-  }
+  if (selectedLog.value) window.location.href = `/api/v1/safety-logs/${encodeURIComponent(selectedLog.value.id)}/download`
 }
 
 onMounted(async () => {
-  try {
-    await Promise.all([loadLogs(), loadConversations()])
-  } catch (cause) {
-    logError.value = cause instanceof Error ? cause.message : '页面数据加载失败'
-  }
+  try { await loadLogs() }
+  catch (cause) { logError.value = cause instanceof Error ? cause.message : '页面数据加载失败' }
 })
 </script>
 
 <template>
   <section class="page safety-log-page">
     <header class="page-heading">
-      <div><p class="eyebrow">DAILY SAFETY LOG</p><h1>当日高处作业安全日志</h1><p>{{ projects.active?.name || '当前项目' }}</p></div>
-      <div class="heading-actions">
-        <input v-model="logDate" class="date-input" type="date" />
-        <button class="btn btn-primary" :disabled="generating" @click="generateLog">{{ generating ? '正在汇总…' : '生成当日日志' }}</button>
-      </div>
+      <div><p class="eyebrow">SAFETY PROCESS LOG</p><h1>施工安全全过程日志</h1><p>{{ projects.active?.name || '当前项目' }} · 真实业务数据自动汇总</p></div>
+      <div class="heading-actions"><input v-model="logDate" class="date-input" type="date" /><button class="btn btn-primary" :disabled="generating" @click="generateLog">{{ generating ? '正在汇总…' : '生成 / 更新日志' }}</button></div>
     </header>
     <div v-if="logError" class="error-banner">{{ logError }}</div>
 
     <section class="log-command card">
-      <div class="command-copy">
-        <span class="log-state" :class="{ ready: selectedLog }">{{ selectedLog ? `V${selectedLog.version}` : '待生成' }}</span>
-        <div><b>{{ selectedLog ? `${selectedLog.assessment_date} 安全日志` : '选择日期并生成安全日志' }}</b><p v-if="!selectedLog">系统将汇总当前项目的审查、任务、知识和风险数据。</p></div>
-      </div>
-      <div class="command-actions">
-        <select v-if="logs.length" class="history-select" :value="selectedLog?.id" @change="selectLog">
-          <option v-for="item in logs" :key="item.id" :value="item.id">{{ item.assessment_date }} · V{{ item.version }} · {{ item.content?.summary?.task_count || 0 }}项任务</option>
-        </select>
-        <button class="btn btn-ghost" :disabled="!selectedLog" @click="downloadLog">下载 Word</button>
-      </div>
+      <div class="command-copy"><span class="log-state" :class="{ ready: selectedLog }">{{ selectedLog ? `V${selectedLog.version}` : '待生成' }}</span><div><b>{{ selectedLog ? `${selectedLog.assessment_date} 全过程日志` : '选择日期并生成全过程日志' }}</b><p>{{ selectedLog ? '记录当日真实业务事件，并附带截至当日未闭环事项。' : '汇总方案审查、班前风险、现场巡检与整改复核。' }}</p></div></div>
+      <div class="command-actions"><select v-if="logs.length" class="history-select" :value="selectedLog?.id" @change="selectLog"><option v-for="item in logs" :key="item.id" :value="item.id">{{ item.assessment_date }} · V{{ item.version }} · {{ item.content?.timeline?.length || 0 }}条事件</option></select><button class="btn btn-ghost" :disabled="!selectedLog" @click="downloadLog">下载 Word</button></div>
     </section>
 
-    <div v-if="selectedLog" class="log-metrics">
-      <article><span>作业任务</span><strong>{{ summary.task_count || 0 }}</strong></article>
-      <article class="red"><span>红色风险</span><strong>{{ summary.red_count || 0 }}</strong></article>
-      <article class="yellow"><span>黄色风险</span><strong>{{ summary.yellow_count || 0 }}</strong></article>
-      <article class="green"><span>绿色风险</span><strong>{{ summary.green_count || 0 }}</strong></article>
-      <article><span>关联审查问题</span><strong>{{ summary.audit_finding_count || 0 }}</strong></article>
-    </div>
+    <template v-if="selectedLog">
+      <div class="log-metrics">
+        <article><span>方案审查/修订</span><strong>{{ summary.plan_activity_count || 0 }}</strong></article><article><span>班前风险分析</span><strong>{{ summary.task_count || 0 }}</strong></article><article><span>现场巡检</span><strong>{{ summary.inspection_count || 0 }}</strong></article><article><span>新增安全事项</span><strong>{{ summary.safety_item_count || 0 }}</strong></article><article class="closed"><span>当日关闭</span><strong>{{ summary.closed_safety_item_count || 0 }}</strong></article><article :class="{ attention: summary.open_item_count }"><span>当前未闭环</span><strong>{{ summary.open_item_count || 0 }}</strong></article>
+      </div>
 
-    <div class="safety-workspace">
       <main class="log-preview card">
-        <div v-if="!selectedLog" class="blank-log"><span>LOG</span><h2>当前日期还没有安全日志</h2><p>生成后可在这里查看风险清单、方案关联问题、培训建议和追溯依据。</p><button class="btn btn-primary" @click="generateLog">生成 {{ logDate }} 日志</button></div>
-        <template v-else>
-          <header class="document-head"><div><small>项目安全过程记录</small><h2>{{ selectedLog.project_name }}</h2></div><div><b>{{ selectedLog.assessment_date }}</b><span>版本 V{{ selectedLog.version }}</span></div></header>
-          <section class="agent-flow"><div v-for="(module,index) in selectedLog.content.source_modules" :key="module"><span>{{ String(Number(index) + 1).padStart(2, '0') }}</span><b>{{ module }}</b><i>已汇总</i></div></section>
+        <header class="document-head"><div><small>项目安全过程记录</small><h2>{{ selectedLog.project_name }}</h2></div><div><b>{{ selectedLog.assessment_date }}</b><span>日志版本 V{{ selectedLog.version }}</span></div></header>
+        <section class="process-flow" aria-label="施工安全全过程"><div v-for="(module,index) in content.source_modules" :key="module"><span>{{ String(Number(index) + 1).padStart(2, '0') }}</span><b>{{ module }}</b><i v-if="Number(index) < content.source_modules.length - 1">→</i></div></section>
 
-          <section class="log-section">
-            <div class="section-title"><div><small>01 / TASK & RISK</small><h3>当日作业与风险清单</h3></div><span>{{ tasks.length }} 项</span></div>
-            <div v-if="tasks.length" class="task-log-list">
-              <article v-for="task in tasks" :key="task.task_id" :class="['task-log', task.risk_level]">
-                <header><div><span class="risk-level">{{ riskLabel(task.risk_level) }}</span><h4>{{ task.normalized_task }}</h4></div><strong>{{ task.priority_score }}</strong></header>
-                <p>{{ task.work_time }} · {{ task.work_location || '未填写位置' }} · {{ task.work_floor || '不按楼层定位' }}</p>
-                <div class="task-detail-grid"><section><b>主要风险</b><ul><li v-for="item in task.main_risks.slice(0,4)" :key="item">{{ item }}</li></ul></section><section><b>作业前检查</b><ul><li v-for="item in task.pre_job_checks.slice(0,4)" :key="item">{{ item }}</li></ul></section><section><b>禁止行为</b><ul><li v-for="item in task.prohibited_behaviors.slice(0,4)" :key="item">{{ item }}</li></ul></section></div>
-                <footer><span>{{ task.risk_summary }}</span><button @click="chainTaskId = task.task_id">查看任务全链路 →</button></footer>
-              </article>
-            </div>
-            <p v-else class="section-empty">当日暂无已登记的高处作业任务。</p>
-          </section>
+        <section class="log-section timeline-section">
+          <div class="section-title"><div><small>01 / PROCESS</small><h3>当日安全事件时间线</h3></div><span>{{ timeline.length }} 条真实记录</span></div>
+          <div v-if="timeline.length" class="timeline-list"><article v-for="(item,index) in timeline" :key="`${item.type}-${item.at}-${index}`"><div class="timeline-mark"><i></i><em></em></div><div class="timeline-main"><div><span class="stage-tag">{{ item.stage }}</span><b>{{ item.title }}</b><small>{{ timeText(item.at) }}</small></div><p>{{ item.detail }}</p><footer><span>记录人：{{ actorText(item.actor) }}</span><RouterLink :to="item.link">{{ item.status }} · 查看详情 →</RouterLink></footer></div></article></div>
+          <p v-else class="section-empty">当日暂无安全过程事件。</p>
+        </section>
 
-          <section class="log-section">
-            <div class="section-title"><div><small>02 / AUDIT</small><h3>关联方案审查问题</h3></div><span>{{ auditFindings.length }} 项</span></div>
-            <div v-if="auditFindings.length" class="finding-list"><article v-for="item in auditFindings" :key="item.id"><b>{{ item.scene }} · {{ item.effective_result }}</b><p>{{ item.issue }}</p><span>{{ item.suggestion }}</span></article></div>
-            <p v-else class="section-empty">当日任务未匹配到相关方案审查问题。</p>
-          </section>
+        <section class="log-section">
+          <div class="section-title"><div><small>02 / PLAN</small><h3>施工方案审查与整改</h3></div><span>{{ planAudits.length + planRevisions.length }} 项业务动作</span></div>
+          <div class="plan-grid"><article v-for="item in planAudits" :key="item.id" class="business-card"><header><span>方案审查</span><RouterLink to="/audit">查看原方案 →</RouterLink></header><h4>{{ item.filename }}</h4><p>AI辅助审查形成 <b>{{ item.finding_count }}</b> 项方案问题。</p></article><article v-for="item in planRevisions" :key="item.id" class="business-card revision-card"><header><span>第 {{ item.attempt_no }} 次整改对比</span><RouterLink to="/audit">查看整改记录 →</RouterLink></header><h4>{{ item.revised_filename }}</h4><div class="revision-result"><b>{{ item.comparison?.original_finding_count || 0 }}<small>原问题</small></b><b class="ok">{{ item.comparison?.resolved_count || 0 }}<small>已解决</small></b><b class="warn">{{ revisionRemaining(item) }}<small>仍需修改</small></b></div><p v-if="item.outstanding_titles?.length">待修改：{{ item.outstanding_titles.join('、') }}</p></article></div>
+          <p v-if="!planAudits.length && !planRevisions.length" class="section-empty">当日无施工方案审查或修订记录。</p>
+        </section>
 
-          <div class="two-log-sections">
-            <section class="log-section"><div class="section-title"><div><small>03 / LEARNING</small><h3>培训建议</h3></div></div><div class="learning-stats"><span><b>{{ selectedLog.content.learning.quiz_attempt_count }}</b>关联测验</span><span><b>{{ selectedLog.content.learning.active_wrong_count }}</b>待复习错题</span></div><ul class="plain-list"><li v-for="item in selectedLog.content.learning.recommendations" :key="item">{{ item }}</li></ul></section>
-            <section class="log-section"><div class="section-title"><div><small>04 / EVIDENCE</small><h3>规范与事故依据</h3></div><span>{{ evidenceSources.length }} 条</span></div><div class="evidence-list"><article v-for="item in evidenceSources.slice(0,6)" :key="`${item.evidence_type}-${item.source_id}`"><b>{{ item.title || item.source_id }}</b><p>{{ item.quote }}</p></article></div></section>
-          </div>
-        </template>
+        <section class="log-section">
+          <div class="section-title"><div><small>03 / PRE-JOB</small><h3>班前风险分析</h3></div><span>{{ tasks.length }} 项任务</span></div>
+          <div v-if="weather.summary" class="weather-strip"><b>天气与环境</b><p>{{ weather.summary }}</p></div>
+          <div v-if="tasks.length" class="task-log-list"><article v-for="task in tasks" :key="task.task_id" :class="['task-log', task.risk_level]"><header><div><span class="risk-level">{{ riskLabel(task.risk_level) }}</span><h4>{{ task.normalized_task }}</h4></div><button @click="chainTaskId = task.task_id">查看任务全链路 →</button></header><p>{{ task.work_time }} · {{ task.work_location || '未填写位置' }} · {{ task.team_ref || '未填写班组' }}</p><div class="task-detail-grid"><section><b>主要风险</b><ul><li v-for="item in task.main_risks.slice(0,3)" :key="item">{{ item }}</li></ul></section><section><b>关键控制措施</b><ul><li v-for="item in task.pre_job_checks.slice(0,3)" :key="item">{{ item }}</li></ul></section><section><b>天气与环境提示</b><ul><li v-for="item in task.weather_warnings.slice(0,3)" :key="item">{{ item }}</li><li v-if="!task.weather_warnings.length">未触发额外天气风险提示</li></ul></section></div></article></div>
+          <p v-else class="section-empty">当日暂无班前风险分析任务。</p>
+        </section>
+
+        <section class="log-section">
+          <div class="section-title"><div><small>04 / ONSITE</small><h3>现场隐患巡检与整改</h3></div><span>{{ inspections.length }} 次巡检</span></div>
+          <div class="onsite-grid"><article v-for="item in inspections" :key="item.id" class="inspection-card"><header><span>现场多模态巡检</span><RouterLink to="/hazards">查看识别记录 →</RouterLink></header><h4>{{ item.original_filename }}</h4><p>{{ item.description || '现场图片上报' }}</p><div><b>{{ item.candidate_count || 0 }}<small>AI疑似</small></b><b class="ok">{{ item.accepted_count || 0 }}<small>人工确认</small></b><b>{{ item.rejected_count || 0 }}<small>人工排除</small></b></div></article><article v-for="item in onsiteItems" :key="item.id" class="rectification-card"><header><span>{{ item.item_no }} · {{ statusLabel(item.order_status || item.status) }}</span><RouterLink :to="`/rectification?item=${item.id}`">查看整改闭环 →</RouterLink></header><h4>{{ item.title }}</h4><p>{{ item.location }} · {{ item.responsible_ref }}</p><div><span>整改提交 <b>{{ item.submission_count || 0 }}</b> 次</span><span>人工复核 <b>{{ item.review_count || 0 }}</b> 次</span></div></article></div>
+          <p v-if="!inspections.length && !onsiteItems.length" class="section-empty">当日暂无现场巡检或整改状态变化。</p>
+        </section>
+
+        <section class="log-section open-section"><div class="section-title"><div><small>05 / PENDING</small><h3>截至当日未闭环事项</h3></div><span>{{ openItems.length }} 项</span></div><div v-if="openItems.length" class="open-list"><article v-for="(item,index) in openItems" :key="`${item.type}-${index}`"><span>{{ item.type === 'plan_revision' ? '方案整改' : '现场隐患' }}</span><div><b>{{ item.title }}</b><p>{{ item.detail }}</p></div><RouterLink :to="item.link">{{ statusLabel(item.status) }} →</RouterLink></article></div><p v-else class="section-empty success-empty">截至当日没有未闭环事项。</p></section>
+
+        <details class="evidence-section"><summary>数据来源与追溯依据 <span>{{ evidenceSources.length }} 条</span></summary><div class="evidence-list"><article v-for="item in evidenceSources.slice(0,10)" :key="`${item.evidence_type}-${item.source_id}`"><b>{{ item.title || item.source_id }}</b><p>{{ item.quote }}</p><small>{{ item.location }}</small></article></div><p>日志按真实业务数据生成；AI仅提供疑似识别与辅助对比，正式安全事项及最终关闭以人工确认、人工复核记录为准。</p></details>
       </main>
+    </template>
 
-      <aside class="qa-panel card">
-        <header><div><small>AI ASSISTANT</small><h2>智能小助手</h2></div><button @click="newConversation">＋ 新会话</button></header>
-        <div ref="chatEl" class="qa-messages">
-          <div v-if="!messages.length" class="qa-welcome"><h3>解释项目数据，也可以明确要求联网查询</h3><button v-for="item in examples" :key="item" @click="send(item)">{{ item }}<i>↗</i></button></div>
-          <article v-for="(message,index) in messages" :key="message.id || index" :class="['qa-message', message.role]"><small v-if="message.role === 'assistant'">{{ agentLabel(message.agent_name) }}</small><p>{{ message.content }}</p><div v-if="message.metadata?.tools" class="qa-tools"><span v-for="tool in message.metadata.tools" :key="tool">{{ toolLabel(tool) }}</span></div><div v-if="message.metadata?.results?.[0]?.items" class="web-sources"><a v-for="source in message.metadata.results[0].items" :key="source.url" :href="source.url" target="_blank" rel="noreferrer">{{ source.title }} ↗</a></div></article>
-          <article v-if="sending" class="qa-message assistant"><small>正在协同</small><p>正在读取项目工具与上下文…</p></article>
-        </div>
-        <div v-if="chatError" class="chat-error">{{ chatError }}</div>
-        <form class="qa-composer" @submit.prevent="send()"><textarea v-model="input" rows="2" placeholder="询问日志、任务、风险、规范；通用问题可明确要求联网…" @keydown.enter.exact.prevent="send()"></textarea><button :disabled="sending || !input.trim()">发送</button></form>
-      </aside>
-    </div>
+    <section v-else class="blank-log card"><span>LOG</span><h2>当前日期还没有安全日志</h2><p>生成后可查看施工安全全过程时间线、各业务环节和未闭环事项。</p><button class="btn btn-primary" @click="generateLog">生成 {{ logDate }} 日志</button></section>
     <TaskChainDrawer :open="!!chainTaskId" :task-id="chainTaskId" @close="chainTaskId = null" />
   </section>
 </template>
 
 <style scoped>
-.safety-log-page{max-width:1680px}.heading-actions{display:flex;gap:9px;align-items:center}.date-input,.history-select{border:1px solid var(--line);border-radius:11px;background:white;color:var(--ink);padding:10px 12px;font-size:12px}.log-command{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:17px 19px}.command-copy,.command-actions{display:flex;align-items:center;gap:12px}.log-state{min-width:58px;padding:9px 10px;border-radius:10px;background:#eef2f7;color:#687b90;text-align:center;font:800 11px monospace}.log-state.ready{background:#e9f4ff;color:#1768aa}.command-copy b{font-size:14px}.command-copy p{font-size:11px;color:var(--muted);margin:4px 0 0}.history-select{max-width:260px}.log-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0}.log-metrics article{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.8)}.log-metrics span{font-size:11px;color:var(--muted)}.log-metrics strong{font-size:24px;color:#183a5b}.log-metrics .red strong{color:var(--red)}.log-metrics .yellow strong{color:#c77b00}.log-metrics .green strong{color:var(--green)}.safety-workspace{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(350px,.75fr);gap:14px;align-items:start}.log-preview{min-width:0;min-height:520px;padding:20px}.blank-log{min-height:450px;display:grid;place-content:center;text-align:center}.blank-log>span{width:58px;height:58px;border-radius:17px;display:grid;place-items:center;margin:auto;background:#e9f4ff;color:#2563eb;font:900 12px monospace}.blank-log h2{font-size:22px;margin:18px 0 8px}.blank-log p{color:var(--muted);font-size:12px;max-width:470px}.blank-log button{justify-self:center;margin-top:8px}.document-head{display:flex;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:2px solid #183a5b}.document-head small{font-size:10px;color:var(--muted)}.document-head h2{font-size:22px;margin:5px 0 0}.document-head>div:last-child{text-align:right}.document-head b,.document-head span{display:block}.document-head b{font-size:15px}.document-head span{font-size:11px;color:var(--muted);margin-top:4px}.agent-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:15px 0}.agent-flow>div{padding:12px;border:1px solid #dce7f2;border-radius:11px;background:#f8fbfe}.agent-flow span,.agent-flow b,.agent-flow i{display:block}.agent-flow span{font:800 10px monospace;color:#6190bb}.agent-flow b{font-size:13px;margin:6px 0}.agent-flow i{font-style:normal;font-size:11px;color:#168167}.log-section{margin-top:14px;padding:18px;border:1px solid #dfe7f1;border-radius:15px;background:white}.section-title{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:13px}.section-title small{font:800 9px monospace;color:#5887b1}.section-title h3{font-size:15px;margin:4px 0 0}.section-title>span{padding:5px 8px;border-radius:8px;background:#eef4fa;color:#456987;font-size:10px}.task-log-list,.finding-list,.evidence-list{display:grid;gap:9px}.task-log{overflow:hidden;border:1px solid #dce5ef;border-left:4px solid var(--green);border-radius:13px;background:#fbfcfe}.task-log.yellow{border-left-color:var(--yellow)}.task-log.red{border-left-color:var(--red)}.task-log>header{display:flex;justify-content:space-between;gap:14px;padding:13px 14px 8px}.task-log>header>div{display:flex;align-items:center;gap:8px}.task-log h4{font-size:14px;margin:0}.task-log>header>strong{font-size:20px;color:#365a7d}.risk-level{padding:4px 7px;border-radius:7px;background:#eaf8f1;color:#217357;font-size:9px;font-weight:800}.yellow .risk-level{background:#fff5df;color:#a46400}.red .risk-level{background:#fff0ee;color:#a43b35}.task-log>p{font-size:11px;color:var(--muted);padding:0 14px;margin:0 0 9px}.task-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:0 12px 12px}.task-detail-grid section{padding:11px;border-radius:10px;background:#f3f7fb}.task-detail-grid b{font-size:12px}.task-detail-grid ul,.plain-list{padding-left:18px;margin:7px 0 0}.task-detail-grid li{font-size:12px;line-height:1.65;margin:4px 0}.plain-list li{font-size:10px;line-height:1.6;margin:3px 0}.task-log footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:#edf3f8}.task-log footer span{font-size:11px;color:#4b657e}.task-log footer button{flex:none;border:0;background:transparent;color:#2563eb;font-size:10px;font-weight:750}.finding-list article,.evidence-list article{padding:11px 12px;border-radius:10px;background:#f5f8fb}.finding-list b,.evidence-list b{font-size:11px}.finding-list p,.evidence-list p{font-size:10px;line-height:1.65;color:#4f6478;margin:5px 0}.finding-list span{font-size:10px;color:#2563eb}.section-empty{color:var(--muted);font-size:11px;margin:5px 0}.two-log-sections{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.learning-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.learning-stats span{padding:11px;border-radius:10px;background:#f3f7fb;font-size:10px;color:var(--muted)}.learning-stats b{display:block;font-size:21px;color:#183a5b;margin-bottom:3px}.qa-panel{position:sticky;top:18px;display:flex;flex-direction:column;height:clamp(560px,calc(100vh - 36px),720px);min-height:0;overflow:hidden}.qa-panel>header{display:flex;align-items:center;justify-content:space-between;padding:18px;border-bottom:1px solid var(--line)}.qa-panel>header small{font:800 9px monospace;color:#5887b1}.qa-panel>header h2{font-size:18px;margin:4px 0 0}.qa-panel>header button{border:1px solid var(--line);border-radius:9px;background:white;padding:7px 9px;font-size:10px}.qa-messages{flex:1;overflow:auto;padding:15px}.qa-welcome{display:grid;gap:8px;padding-top:8px}.qa-welcome h3{font-size:15px;line-height:1.55;margin:5px 0 6px}.qa-welcome button{display:flex;justify-content:space-between;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;text-align:left;font-size:10px}.qa-welcome i{font-style:normal;color:#2563eb}.qa-message{margin-bottom:13px}.qa-message small{font:800 9px monospace;color:#6787a5}.qa-message p{white-space:pre-wrap;font-size:11px;line-height:1.75;margin:4px 0;padding:10px 12px;border-radius:4px 12px 12px;background:#f0f4f8}.qa-message.user p{background:#e6f1fc}.qa-tools{display:flex;flex-wrap:wrap;gap:4px}.qa-tools span{padding:4px 6px;border-radius:6px;background:#edf3f8;color:#5d7185;font:700 8px monospace}.web-sources{display:grid;gap:4px;margin-top:6px}.web-sources a{font-size:9px;color:#2563eb;overflow-wrap:anywhere}.chat-error{margin:0 12px 7px;padding:9px;border-radius:9px;background:#fff0ee;color:#a13c36;font-size:10px}.qa-composer{display:grid;grid-template-columns:1fr auto;gap:7px;padding:12px;border-top:1px solid var(--line)}.qa-composer textarea{resize:none;border:1px solid var(--line);border-radius:10px;padding:9px;outline:0;font-size:11px}.qa-composer button{border:0;border-radius:9px;background:#183a5b;color:white;padding:0 13px;font-size:11px;font-weight:750}.qa-composer button:disabled{opacity:.5}.evidence-list{max-height:300px;overflow:auto}@media(max-width:1200px){.safety-workspace{grid-template-columns:1fr}.qa-panel{position:static;height:560px;min-height:560px}.log-metrics{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.page-heading,.log-command{align-items:stretch;flex-direction:column}.heading-actions,.command-actions{display:grid;grid-template-columns:1fr 1fr}.history-select{max-width:none}.log-metrics{grid-template-columns:repeat(2,1fr)}.agent-flow,.task-detail-grid,.two-log-sections{grid-template-columns:1fr}.log-preview{padding:14px}.document-head{display:block}.document-head>div:last-child{text-align:left;margin-top:8px}.qa-panel{min-height:560px}.task-log footer{align-items:flex-start;flex-direction:column}}
+.safety-log-page{max-width:1680px}.heading-actions,.command-actions,.command-copy{display:flex;align-items:center;gap:12px}.date-input,.history-select{border:1px solid var(--line);border-radius:11px;background:white;color:var(--ink);padding:11px 13px;font-size:14px}.log-command{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px}.log-state{min-width:62px;padding:10px;border-radius:11px;background:#eef2f7;color:#687b90;text-align:center;font:800 12px monospace}.log-state.ready{background:#e9f4ff;color:#1768aa}.command-copy b{font-size:15px}.command-copy p{font-size:13px;color:var(--muted);margin:4px 0 0}.history-select{max-width:290px}.log-metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin:13px 0}.log-metrics article{display:flex;align-items:center;justify-content:space-between;padding:16px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.84)}.log-metrics span{font-size:13px;color:var(--muted)}.log-metrics strong{font-size:27px;color:#183a5b}.log-metrics .closed strong{color:var(--green)}.log-metrics .attention{border-color:#f2c66d;background:#fffaf0}.log-metrics .attention strong{color:#b66b00}.log-preview{padding:24px;min-height:560px}.document-head{display:flex;justify-content:space-between;gap:20px;padding-bottom:19px;border-bottom:2px solid #183a5b}.document-head small{font-size:12px;color:var(--muted)}.document-head h2{font-size:24px;margin:6px 0 0}.document-head>div:last-child{text-align:right}.document-head b,.document-head span{display:block}.document-head b{font-size:16px}.document-head span{font-size:13px;color:var(--muted);margin-top:4px}.process-flow{display:grid;grid-template-columns:repeat(4,1fr);align-items:stretch;gap:18px;margin:22px 0 32px}.process-flow>div{position:relative;display:flex;min-height:96px;flex-direction:column;justify-content:center;padding:18px 20px;border:1px solid #d8e4f0;border-radius:14px;background:#f8fbfe}.process-flow span,.process-flow b{display:block}.process-flow span{font:800 13px monospace;color:#3f7cad}.process-flow b{font-size:17px;line-height:1.4;margin-top:8px}.process-flow i{position:absolute;right:-19px;top:50%;z-index:2;width:20px;display:grid;place-items:center;transform:translateY(-50%);color:#7894ae;font-size:20px;line-height:1;font-style:normal}.log-section{margin-top:15px;padding:20px;border:1px solid #dfe7f1;border-radius:16px;background:white}.section-title{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:15px}.section-title small{font:800 10px monospace;color:#5887b1}.section-title h3{font-size:18px;margin:5px 0 0}.section-title>span{padding:6px 9px;border-radius:8px;background:#eef4fa;color:#456987;font-size:12px}.section-empty{color:var(--muted);font-size:13px;margin:8px 0}.timeline-list article{display:grid;grid-template-columns:18px 1fr;gap:13px}.timeline-mark{display:flex;flex-direction:column;align-items:center}.timeline-mark i{width:10px;height:10px;margin-top:9px;border-radius:50%;background:#2f80c7;box-shadow:0 0 0 5px #e4f2ff}.timeline-mark em{width:2px;flex:1;min-height:60px;background:#d8e5f1}.timeline-list article:last-child .timeline-mark em{display:none}.timeline-main{padding:4px 0 17px}.timeline-main>div{display:flex;align-items:center;gap:9px}.timeline-main b{font-size:15px}.timeline-main small{margin-left:auto;color:var(--muted);font-size:12px}.timeline-main p{margin:7px 0;color:#4d6278;font-size:13px;line-height:1.65}.timeline-main footer{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#6d8195}.timeline-main a,.business-card a,.inspection-card a,.rectification-card a,.open-list a{color:#2563eb;text-decoration:none;font-weight:700}.stage-tag{padding:4px 7px;border-radius:7px;background:#e8f4ff;color:#1e6da8;font-size:11px;font-weight:800}.plan-grid,.onsite-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.business-card,.inspection-card,.rectification-card{padding:15px;border:1px solid #dfe7ef;border-radius:13px;background:#f9fbfd}.business-card header,.inspection-card header,.rectification-card header{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#61788f}.business-card h4,.inspection-card h4,.rectification-card h4{font-size:15px;margin:10px 0 6px}.business-card p,.inspection-card p,.rectification-card p{font-size:13px;line-height:1.6;color:#536a80;margin:0}.revision-card{border-left:4px solid #e0a22d;background:#fffcf4}.revision-result,.inspection-card>div{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:11px 0}.revision-result>b,.inspection-card>div>b{padding:10px;border-radius:10px;background:white;font-size:22px}.revision-result small,.inspection-card small{display:block;margin-top:3px;color:var(--muted);font-size:11px}.revision-result .ok,.inspection-card .ok{color:var(--green)}.revision-result .warn{color:#b66b00}.weather-strip{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:13px 15px;margin-bottom:12px;border-radius:12px;background:#eef7ff}.weather-strip b{font-size:13px;color:#1768aa}.weather-strip p{font-size:13px;line-height:1.65;margin:0;color:#45637e}.task-log-list{display:grid;gap:11px}.task-log{border:1px solid #dce5ef;border-left:4px solid var(--green);border-radius:13px;background:#fbfcfe}.task-log.yellow{border-left-color:var(--yellow)}.task-log.red{border-left-color:var(--red)}.task-log>header{display:flex;justify-content:space-between;gap:14px;padding:14px 15px 9px}.task-log>header>div{display:flex;align-items:center;gap:9px}.task-log h4{font-size:15px;margin:0}.task-log header button{border:0;background:transparent;color:#2563eb;font-size:12px;font-weight:700}.risk-level{padding:5px 8px;border-radius:7px;background:#eaf8f1;color:#217357;font-size:11px;font-weight:800}.task-log.yellow .risk-level{background:#fff5df;color:#a46400}.task-log.red .risk-level{background:#fff0ee;color:#a43b35}.task-log>p{font-size:13px;color:var(--muted);padding:0 15px;margin:0 0 10px}.task-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 13px 13px}.task-detail-grid section{padding:12px;border-radius:10px;background:#f3f7fb}.task-detail-grid b{font-size:13px}.task-detail-grid ul{padding-left:18px;margin:8px 0 0}.task-detail-grid li{font-size:13px;line-height:1.65;margin:4px 0}.rectification-card>div{display:flex;gap:18px;margin-top:10px;font-size:12px;color:#60778e}.rectification-card>div b{font-size:16px;color:#173c60}.open-section{border-color:#efd59d;background:#fffdf8}.open-list{display:grid;gap:8px}.open-list article{display:grid;grid-template-columns:78px 1fr auto;gap:12px;align-items:center;padding:13px;border-radius:11px;background:white}.open-list article>span{font-size:11px;font-weight:800;color:#a36300}.open-list b{font-size:14px}.open-list p{font-size:12px;color:var(--muted);margin:4px 0 0}.success-empty{color:var(--green)}.evidence-section{margin-top:15px;padding:17px 20px;border:1px solid #dfe7f1;border-radius:15px;background:#f8fafc}.evidence-section summary{cursor:pointer;font-size:14px;font-weight:800}.evidence-section summary span{float:right;color:var(--muted);font-weight:500}.evidence-section>p{font-size:12px;color:var(--muted);line-height:1.7}.evidence-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}.evidence-list article{padding:12px;border-radius:10px;background:white}.evidence-list b{font-size:13px}.evidence-list p{font-size:12px;line-height:1.6;color:#4f6478;margin:5px 0}.evidence-list small{font-size:11px;color:var(--muted)}.blank-log{min-height:460px;display:grid;place-content:center;text-align:center;padding:30px}.blank-log>span{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;margin:auto;background:#e9f4ff;color:#2563eb;font:900 13px monospace}.blank-log h2{font-size:23px;margin:18px 0 8px}.blank-log p{color:var(--muted);font-size:14px}.blank-log button{justify-self:center;margin-top:10px}@media(max-width:1200px){.log-metrics{grid-template-columns:repeat(3,1fr)}}@media(max-width:800px){.page-heading,.log-command{align-items:stretch;flex-direction:column}.heading-actions,.command-actions{display:grid;grid-template-columns:1fr 1fr}.history-select{max-width:none}.log-metrics{grid-template-columns:repeat(2,1fr)}.process-flow,.plan-grid,.onsite-grid,.task-detail-grid,.evidence-list{grid-template-columns:1fr}.process-flow i{display:none}.timeline-main>div{align-items:flex-start;flex-wrap:wrap}.timeline-main small{width:100%;margin:0}.timeline-main footer,.open-list article{align-items:flex-start;grid-template-columns:1fr}.document-head{display:block}.document-head>div:last-child{text-align:left;margin-top:8px}}
 </style>

@@ -61,7 +61,7 @@ class BochaWebSearchService:
                 "provider": "bocha",
                 "query": normalized,
                 "items": [],
-                "message": "联网问答尚未配置 BOCHA_API_KEY。",
+                "message": "联网检索服务暂未启用，请联系管理员配置后重试。",
             }
         result_count = min(
             max(1, count or self.settings.bocha_search_max_results),

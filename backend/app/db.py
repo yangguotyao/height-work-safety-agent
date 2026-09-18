@@ -97,6 +97,7 @@ ON standard_chunks(standard_code, clause, active);
 CREATE TABLE IF NOT EXISTS audit_runs (
     id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL REFERENCES documents(id),
+    browser_session_id TEXT NOT NULL DEFAULT 'legacy',
     status TEXT NOT NULL,
     current_node TEXT,
     scenes_json TEXT NOT NULL DEFAULT '[]',
@@ -164,6 +165,21 @@ CREATE TABLE IF NOT EXISTS human_reviews (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS plan_revisions (
+    id TEXT PRIMARY KEY,
+    source_run_id TEXT NOT NULL REFERENCES audit_runs(id) ON DELETE CASCADE,
+    revised_run_id TEXT NOT NULL UNIQUE REFERENCES audit_runs(id) ON DELETE CASCADE,
+    attempt_no INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'analyzing',
+    comparison_json TEXT NOT NULL DEFAULT '{}',
+    submitted_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    completed_at TEXT,
+    UNIQUE(source_run_id, attempt_no)
+);
+CREATE INDEX IF NOT EXISTS idx_plan_revisions_source
+ON plan_revisions(source_run_id, attempt_no DESC);
+
 CREATE TABLE IF NOT EXISTS gold_cases (
     id TEXT PRIMARY KEY,
     source_workbook TEXT NOT NULL,
@@ -197,6 +213,7 @@ CREATE TABLE IF NOT EXISTS test_runs (
 
 CREATE TABLE IF NOT EXISTS worker_sessions (
     id TEXT PRIMARY KEY,
+    browser_session_id TEXT NOT NULL DEFAULT 'legacy',
     worker_ref TEXT NOT NULL DEFAULT '',
     team_ref TEXT NOT NULL DEFAULT '',
     audit_run_id TEXT REFERENCES audit_runs(id),
@@ -219,6 +236,7 @@ ON worker_messages(session_id, created_at);
 CREATE TABLE IF NOT EXISTS work_tasks (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL UNIQUE REFERENCES worker_sessions(id) ON DELETE CASCADE,
+    browser_session_id TEXT NOT NULL DEFAULT 'legacy',
     worker_ref TEXT NOT NULL DEFAULT '',
     team_ref TEXT NOT NULL DEFAULT '',
     audit_run_id TEXT REFERENCES audit_runs(id),
@@ -295,6 +313,7 @@ ON worker_learning_events(worker_ref, created_at);
 
 CREATE TABLE IF NOT EXISTS dynamic_risk_runs (
     id TEXT PRIMARY KEY,
+    browser_session_id TEXT NOT NULL DEFAULT 'legacy',
     assessment_date TEXT NOT NULL,
     trigger_type TEXT NOT NULL,
     include_test INTEGER NOT NULL DEFAULT 0,
@@ -341,6 +360,132 @@ CREATE TABLE IF NOT EXISTS dynamic_risk_confirmations (
 );
 CREATE INDEX IF NOT EXISTS idx_dynamic_confirmations_item
 ON dynamic_risk_confirmations(item_id, status);
+
+CREATE TABLE IF NOT EXISTS hazard_inspections (
+    id TEXT PRIMARY KEY,
+    browser_session_id TEXT NOT NULL DEFAULT 'legacy',
+    task_id TEXT REFERENCES work_tasks(id) ON DELETE SET NULL,
+    description TEXT NOT NULL,
+    original_filename TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    analysis_status TEXT NOT NULL DEFAULT 'queued',
+    model_name TEXT NOT NULL,
+    image_quality TEXT,
+    overall_visible_facts_json TEXT NOT NULL DEFAULT '[]',
+    unable_to_confirm_json TEXT NOT NULL DEFAULT '[]',
+    ai_result_json TEXT NOT NULL DEFAULT '{}',
+    error TEXT,
+    submitted_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    completed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_hazard_inspections_created
+ON hazard_inspections(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_hazard_inspections_task
+ON hazard_inspections(task_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS hazard_candidates (
+    id TEXT PRIMARY KEY,
+    inspection_id TEXT NOT NULL REFERENCES hazard_inspections(id) ON DELETE CASCADE,
+    sequence_no INTEGER NOT NULL,
+    scene TEXT NOT NULL DEFAULT '',
+    hazard_type TEXT NOT NULL DEFAULT '',
+    suspected_hazard TEXT NOT NULL,
+    visible_facts_json TEXT NOT NULL DEFAULT '[]',
+    unable_to_confirm_json TEXT NOT NULL DEFAULT '[]',
+    recommended_checks_json TEXT NOT NULL DEFAULT '[]',
+    review_status TEXT NOT NULL DEFAULT 'pending',
+    reviewer_ref TEXT,
+    review_comment TEXT,
+    reviewed_at TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(inspection_id, sequence_no)
+);
+CREATE INDEX IF NOT EXISTS idx_hazard_candidates_review
+ON hazard_candidates(review_status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS safety_items (
+    id TEXT PRIMARY KEY,
+    item_no TEXT NOT NULL DEFAULT '',
+    source_candidate_id TEXT NOT NULL UNIQUE
+        REFERENCES hazard_candidates(id) ON DELETE RESTRICT,
+    task_id TEXT REFERENCES work_tasks(id) ON DELETE SET NULL,
+    source TEXT NOT NULL DEFAULT 'onsite_multimodal',
+    title TEXT NOT NULL,
+    fact_description TEXT NOT NULL,
+    hazard_category TEXT NOT NULL,
+    risk_level TEXT NOT NULL,
+    location TEXT NOT NULL,
+    basis_json TEXT NOT NULL DEFAULT '[]',
+    basis_retrieval_version TEXT NOT NULL DEFAULT '',
+    rectification_requirement TEXT NOT NULL,
+    responsible_ref TEXT NOT NULL,
+    deadline TEXT,
+    status TEXT NOT NULL DEFAULT 'processing',
+    confirmed_by TEXT NOT NULL DEFAULT '',
+    confirmed_at TEXT,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_safety_items_status
+ON safety_items(status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS rectification_orders (
+    id TEXT PRIMARY KEY,
+    order_no TEXT NOT NULL UNIQUE,
+    safety_item_id TEXT NOT NULL UNIQUE REFERENCES safety_items(id) ON DELETE CASCADE,
+    responsible_ref TEXT NOT NULL,
+    team_or_area TEXT NOT NULL DEFAULT '',
+    requirement TEXT NOT NULL,
+    due_at TEXT,
+    risk_level TEXT NOT NULL,
+    immediate INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending_rectification',
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rectification_orders_status
+ON rectification_orders(status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS rectification_submissions (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES rectification_orders(id) ON DELETE CASCADE,
+    attempt_no INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    original_filename TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    submitted_by TEXT NOT NULL,
+    submitted_at TEXT NOT NULL,
+    comparison_status TEXT NOT NULL DEFAULT 'queued',
+    comparison_model TEXT NOT NULL,
+    comparison_json TEXT NOT NULL DEFAULT '{}',
+    comparison_error TEXT,
+    UNIQUE(order_id, attempt_no)
+);
+CREATE INDEX IF NOT EXISTS idx_rectification_submissions_order
+ON rectification_submissions(order_id, attempt_no DESC);
+
+CREATE TABLE IF NOT EXISTS rectification_reviews (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES rectification_orders(id) ON DELETE CASCADE,
+    submission_id TEXT NOT NULL REFERENCES rectification_submissions(id) ON DELETE RESTRICT,
+    sequence_no INTEGER NOT NULL,
+    result TEXT NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    reviewer_ref TEXT NOT NULL,
+    reviewed_at TEXT NOT NULL,
+    UNIQUE(order_id, sequence_no)
+);
+CREATE INDEX IF NOT EXISTS idx_rectification_reviews_order
+ON rectification_reviews(order_id, sequence_no);
 
 CREATE TABLE IF NOT EXISTS knowledge_entities (
     id TEXT PRIMARY KEY,
@@ -416,6 +561,7 @@ ON platform_project_members(user_id, project_id);
 CREATE TABLE IF NOT EXISTS platform_auth_sessions (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+    active_project_id TEXT,
     expires_at TEXT NOT NULL,
     created_at TEXT NOT NULL,
     last_seen_at TEXT NOT NULL,
@@ -502,6 +648,7 @@ ON platform_data_events(project_id, event_type, created_at);
 
 CREATE TABLE IF NOT EXISTS daily_safety_logs (
     id TEXT PRIMARY KEY,
+    browser_session_id TEXT NOT NULL DEFAULT 'legacy',
     assessment_date TEXT NOT NULL,
     project_name TEXT NOT NULL,
     version INTEGER NOT NULL,
@@ -633,7 +780,102 @@ class Database:
                                OR lower(t.worker_ref) LIKE '%test%'
                                OR t.worker_ref LIKE '演示%'
                              )
-                       )"""
+                    )"""
+                )
+            safety_item_columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(safety_items)").fetchall()
+            }
+            safety_item_defaults = {
+                "item_no": "''",
+                "source": "'onsite_multimodal'",
+                "basis_json": "'[]'",
+                "basis_retrieval_version": "''",
+                "confirmed_by": "''",
+            }
+            for name, default in safety_item_defaults.items():
+                if name not in safety_item_columns:
+                    connection.execute(
+                        f"ALTER TABLE safety_items ADD COLUMN {name} "
+                        f"TEXT NOT NULL DEFAULT {default}"
+                    )
+            if "confirmed_at" not in safety_item_columns:
+                connection.execute("ALTER TABLE safety_items ADD COLUMN confirmed_at TEXT")
+            connection.execute(
+                "UPDATE safety_items SET status='processing' WHERE status='open'"
+            )
+            connection.execute(
+                """UPDATE safety_items
+                   SET item_no='AQ-' || replace(substr(created_at, 1, 10), '-', '') || '-' ||
+                       upper(substr(id, 1, 6))
+                   WHERE item_no=''"""
+            )
+            connection.execute(
+                """UPDATE safety_items
+                   SET confirmed_by=created_by,
+                       confirmed_at=COALESCE(confirmed_at, created_at)
+                   WHERE confirmed_by='' OR confirmed_at IS NULL"""
+            )
+            connection.execute(
+                """INSERT OR IGNORE INTO rectification_orders
+                   (id, order_no, safety_item_id, responsible_ref, team_or_area,
+                    requirement, due_at, risk_level, immediate, status, created_by,
+                    created_at, updated_at)
+                   SELECT lower(hex(randomblob(16))),
+                          'ZG-' || replace(substr(s.created_at, 1, 10), '-', '') || '-' ||
+                          upper(substr(s.id, 1, 6)),
+                          s.id, s.responsible_ref, s.responsible_ref,
+                          s.rectification_requirement, s.deadline, s.risk_level,
+                          CASE WHEN s.risk_level='red' THEN 1 ELSE 0 END,
+                          CASE WHEN s.status='closed' THEN 'closed'
+                               ELSE 'pending_rectification' END,
+                          s.created_by, s.created_at, s.updated_at
+                   FROM safety_items s
+                   WHERE NOT EXISTS (
+                       SELECT 1 FROM rectification_orders o WHERE o.safety_item_id=s.id
+                   )"""
+            )
+            inspection_columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(hazard_inspections)"
+                ).fetchall()
+            }
+            if "ai_result_json" not in inspection_columns:
+                connection.execute(
+                    "ALTER TABLE hazard_inspections ADD COLUMN ai_result_json "
+                    "TEXT NOT NULL DEFAULT '{}'"
+                )
+            for table in (
+                "audit_runs",
+                "worker_sessions",
+                "work_tasks",
+                "dynamic_risk_runs",
+                "hazard_inspections",
+                "daily_safety_logs",
+            ):
+                scoped_columns = {
+                    row[1]
+                    for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
+                }
+                if "browser_session_id" not in scoped_columns:
+                    connection.execute(
+                        f"ALTER TABLE {table} ADD COLUMN browser_session_id "
+                        "TEXT NOT NULL DEFAULT 'legacy'"
+                    )
+                connection.execute(
+                    f"CREATE INDEX IF NOT EXISTS idx_{table}_browser_session "
+                    f"ON {table}(browser_session_id)"
+                )
+            session_columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(platform_auth_sessions)"
+                ).fetchall()
+            }
+            if "active_project_id" not in session_columns:
+                connection.execute(
+                    "ALTER TABLE platform_auth_sessions ADD COLUMN active_project_id TEXT"
                 )
             connection.execute("PRAGMA optimize")
 

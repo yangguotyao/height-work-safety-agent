@@ -6,16 +6,16 @@ from fastapi import Depends, HTTPException, Request, status
 
 
 def current_identity(request: Request) -> dict:
-    workspace = request.app.state.active_workspace
-    try:
-        return request.app.state.platform_repository.workspace_identity(
-            workspace["id"], workspace["name"]
+    identity = getattr(request.state, "identity", None)
+    if identity is None and not request.app.state.base_settings.enforce_auth:
+        workspace = request.app.state.active_workspace
+        return request.app.state.auth_repository.workspace_identity(
+            workspace.get("id", "default-project"),
+            workspace.get("name", "项目工作空间"),
         )
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="项目工作空间尚未初始化",
-        ) from exc
+    if identity is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="请先登录")
+    return identity
 
 
 def require_roles(*roles: str):

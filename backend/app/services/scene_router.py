@@ -187,7 +187,7 @@ def _consolidate_scene_instances(instances: list[dict[str, Any]]) -> list[dict[s
     because their applicable controls differ. A generic hit is absorbed into a concrete
     lifecycle instance when one exists.
     """
-    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
     for item in instances:
         object_group = (
             str(item.get("object_type") or "unspecified_scaffold")
@@ -198,29 +198,31 @@ def _consolidate_scene_instances(instances: list[dict[str, Any]]) -> list[dict[s
             item["scene"],
             _lifecycle_group(item["scene"], item["title"]),
             object_group,
+            str(item.get("object_instance_key") or "general"),
         )
         grouped.setdefault(key, []).append(item)
 
     lifecycle_keys = {
         phase
-        for (scene, phase, _object_group) in grouped
+        for (scene, phase, _object_group, _object_key) in grouped
         if scene == "脚手架搭设与拆除" and phase != "综合"
     }
     if lifecycle_keys:
         for key in list(grouped):
-            scene, phase, object_group = key
+            scene, phase, object_group, object_key = key
             if scene != "脚手架搭设与拆除" or phase != "综合":
                 continue
             fallback_phase = "搭设" if "搭设" in lifecycle_keys else sorted(lifecycle_keys)[0]
-            grouped.setdefault((scene, fallback_phase, object_group), []).extend(
+            grouped.setdefault((scene, fallback_phase, object_group, object_key), []).extend(
                 grouped.pop(key)
             )
 
     consolidated: list[dict[str, Any]] = []
-    for (scene, phase, object_group), members in grouped.items():
+    for (scene, phase, object_group, object_key), members in grouped.items():
         preferred = min(
             members,
             key=lambda item: (
+                0 if "deterministic_object_card" in item["sources"] else 1,
                 0 if "deterministic_heading" in item["sources"] else 1,
                 len(item["title"]),
                 item["location"],
@@ -238,7 +240,7 @@ def _consolidate_scene_instances(instances: list[dict[str, Any]]) -> list[dict[s
             {
                 **preferred,
                 "id": _instance_id(
-                    scene, f"{scene}|{phase}|{object_group}", segment_ids[0]
+                    scene, f"{scene}|{phase}|{object_group}|{object_key}", segment_ids[0]
                 ),
                 "title": title,
                 "segment_ids": segment_ids,

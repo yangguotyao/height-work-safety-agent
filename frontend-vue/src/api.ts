@@ -6,8 +6,23 @@ export class ApiError extends Error {
   }
 }
 
+const browserSessionId = crypto.randomUUID()
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return
+    void fetch('/api/v1/browser-session', {
+      method: 'DELETE',
+      headers: { 'X-Demo-Session': browserSessionId },
+      credentials: 'include',
+      keepalive: true
+    })
+  })
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
+  headers.set('X-Demo-Session', browserSessionId)
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }

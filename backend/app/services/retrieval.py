@@ -6,6 +6,8 @@ from collections import Counter
 PUNCTUATION_RE = re.compile(r"[\s，。；：、（）()《》〈〉\[\]【】/\\]+")
 ALNUM_RE = re.compile(r"[a-zA-Z]+\d+(?:\.\d+)*|\d+(?:\.\d+)?(?:mm|cm|m|kg|t)?", re.I)
 DOMAIN_SYNONYM_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("作业脚手架宽度", "架体宽度", "立杆横距", "立杆排距", "排距", "内外立杆间距"),
+    ("作业层高度", "立杆步距", "步距"),
     ("浇筑混凝土", "混凝土浇筑", "施加荷载"),
     ("架体下", "支模底下", "支架下方", "脚手架下方"),
     ("严禁有人", "不得有人", "禁止人员", "禁止无关人员", "严禁人员"),

@@ -37,6 +37,17 @@ SIMPLE_NUMBER_HEADING_RE = re.compile(r"^\d+[、.．]\s*\S+")
 CHINESE_NUMBER_HEADING_RE = re.compile(
     r"^[一二三四五六七八九十百千万零〇两]+[、.．]\s*\S+"
 )
+# Legacy construction schemes often use plain, unnumbered paragraphs for the
+# calculation-book boundary.  Keep this allow-list intentionally narrow: these
+# titles are structural markers, while ordinary short safety sentences are not.
+LEGACY_EXACT_HEADINGS: dict[str, int] = {
+    "脚手架的安装及拆除": 1,
+    "内脚手架及砖架搭设": 2,
+    "脚手架计算书": 1,
+}
+LEGACY_CALCULATION_HEADING_RE = re.compile(
+    r"^(?:悬挑式|落地式|附着式)?(?:扣件(?:式)?)?钢管脚手架计算书$"
+)
 SENTENCE_BOUNDARY_RE = re.compile(r"(?<=[。！？；])")
 MEASURE_SENTENCE_RE = re.compile(
     r"应|必须|不得|严禁|不准|要求|停止|检查|采取|方可|才准|需|要|"
@@ -81,6 +92,11 @@ def _heading_level(paragraph: Paragraph) -> int | None:
     text = _clean_text(paragraph.text)
     if not text:
         return None
+
+    if text in LEGACY_EXACT_HEADINGS:
+        return LEGACY_EXACT_HEADINGS[text]
+    if LEGACY_CALCULATION_HEADING_RE.fullmatch(text):
+        return 2
 
     # Numbering is more reliable than a frequently misused Word heading level. For
     # example, a paragraph styled Heading 1 but numbered “6.3” is still a level-2

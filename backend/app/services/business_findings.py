@@ -15,6 +15,18 @@ RESULT_PRIORITY = {
     AuditResult.NONCOMPLIANT.value: 3,
     AuditResult.NOT_SPECIFIED.value: 2,
 }
+# These rule pairs express the same user action at different library granularity.
+# Keep both atomic traces, but show only the more complete dismantling rule so the
+# scheme is not instructed to add the same sentence in two sections.
+SUPERSEDED_DISPLAY_RULES = {
+    "JSJ-050": "JSJ-005",
+    "JSJ-052": "JSJ-006",
+    "JSJ-055": "JSJ-007",
+    "JSJ-058": "JSJ-018",
+    "JSJ-059": "JSJ-019",
+    "JSJ-061": "JSJ-021",
+    "JSJ-063": "JSJ-022",
+}
 
 
 def _unique(values: list[str], limit: int | None = None) -> list[str]:
@@ -69,32 +81,57 @@ def _plan_evidence(
 
 
 def build_business_findings(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    actionable_rule_ids = {
+        item["rule_id"] for item in items if item["result"] in ACTIONABLE_RESULTS
+    }
     groups: dict[str, list[dict[str, Any]]] = {}
     for item in items:
         # Uncertain machine judgments are retained in atomic audit traces but are
         # not user-facing problems. Only confirmed actionable findings appear here.
         if item["result"] not in ACTIONABLE_RESULTS:
             continue
-        key = item.get("business_group_key") or f"{item['scene']}|{item['rule_id']}"
+        replacement = SUPERSEDED_DISPLAY_RULES.get(item["rule_id"])
+        if replacement and replacement in actionable_rule_ids:
+            continue
+        if str(item["rule_id"]).startswith("PLAN-CONSISTENCY-"):
+            key = item.get("business_group_key") or item["rule_id"]
+        else:
+            key = f"{item['scene']}|{item.get('control_title') or item['scene']}"
         groups.setdefault(key, []).append(item)
 
     findings: list[dict[str, Any]] = []
     for key, atomic_items in groups.items():
-        atomic_items.sort(key=lambda item: item["rule_id"])
-        result = max(atomic_items, key=lambda item: RESULT_PRIORITY[item["result"]])["result"]
-        counts = Counter(item["result"] for item in atomic_items)
-        issues = _unique(
-            [item["issue"] for item in atomic_items if _business_text(item["issue"])], 6
+        atomic_items.sort(
+            key=lambda item: (
+                item["rule_id"],
+                -float(item.get("confidence") or 0),
+                len(item.get("suggestion") or ""),
+            )
         )
+        result = max(atomic_items, key=lambda item: RESULT_PRIORITY[item["result"]])["result"]
+        counts = Counter(
+            result
+            for _rule_id, result in {
+                (item["rule_id"], item["result"]) for item in atomic_items
+            }
+        )
+        issues_by_rule: dict[str, str] = {}
+        suggestions_by_rule: dict[str, str] = {}
+        for item in atomic_items:
+            if _business_text(item["issue"]):
+                issues_by_rule.setdefault(item["rule_id"], item["issue"])
+            suggestions_by_rule.setdefault(item["rule_id"], item["suggestion"])
+        issues = _unique(list(issues_by_rule.values()), 6)
         if not issues:
             issues = ["方案未完整说明该业务控制项要求。"]
+        rule_ids = _unique([item["rule_id"] for item in atomic_items])
         if len(atomic_items) == 1:
             issue = issues[0]
         else:
             summary = "、".join(f"{name}{count}项" for name, count in counts.items())
-            issue = f"该业务控制项关联{len(atomic_items)}条原子规则（{summary}）。"
+            issue = f"该业务控制项关联{len(rule_ids)}条规则（{summary}）。"
             issue += "\n" + "\n".join(f"- {value}" for value in issues)
-        suggestions = _unique([item["suggestion"] for item in atomic_items], 4)
+        suggestions = _unique(list(suggestions_by_rule.values()), 4)
         risks = _unique([item["risk_consequence"] for item in atomic_items], 3)
         plan_evidence = _plan_evidence(atomic_items)
         basis: list[dict[str, Any]] = []
@@ -118,7 +155,7 @@ def build_business_findings(items: list[dict[str, Any]]) -> list[dict[str, Any]]
                     entry["location"] for entry in plan_evidence if entry["location"]
                 ),
                 "confidence": min(float(item["confidence"]) for item in atomic_items),
-                "rule_ids": [item["rule_id"] for item in atomic_items],
+                "rule_ids": rule_ids,
                 "basis": basis,
                 "atomic_items": atomic_items,
             }

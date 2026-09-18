@@ -10,6 +10,7 @@ htmlcov/
 
 # Python environments and packaging outputs
 .venv/
+.venv*/
 venv/
 env/
 ENV/
@@ -35,6 +36,8 @@ frontend/dist/
 frontend-vue/dist/
 frontend-vue/vite.config.js
 frontend-vue/vite.config.d.ts
+frontend-vue/pnpm-lock.yaml
+frontend-vue/pnpm-workspace.yaml
 
 # Editors and operating-system files
 .vscode/
@@ -95,3 +98,4 @@ Dockerfile.incremental
 /data/高处作业事故报告数据集_55例/
 /data/高处作业事故知识图谱_55例/*
 !/data/高处作业事故知识图谱_55例/高处作业事故知识图谱.sqlite
+/data/隐患识别图集/

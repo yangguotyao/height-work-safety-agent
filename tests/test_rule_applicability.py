@@ -63,3 +63,49 @@ def test_high_work_alone_does_not_make_every_climbing_rule_applicable():
     decision = assess_rule_applicability(rule, [], instances)
 
     assert decision.status is ApplicabilityStatus.UNCERTAIN
+
+
+def test_deep_foundation_climbing_rule_does_not_expand_from_scaffold_ladder_scene():
+    rule = {
+        **_rule("作业人员严禁沿坑壁、支撑或乘运土工具上下", "深基坑施工时"),
+        "scene": "攀登作业",
+        "original_text": "深基坑施工应设置扶梯，作业人员严禁沿坑壁上下。",
+    }
+
+    decision = assess_rule_applicability(
+        rule,
+        _evidence("脚手架人员上下应走人行梯道，不准攀爬架体。"),
+        [],
+    )
+
+    assert decision.status is ApplicabilityStatus.NOT_APPLICABLE
+
+
+def test_hot_work_rule_requires_positive_hot_work_evidence():
+    decision = assess_rule_applicability(
+        _rule("脚手架内动火应设置接火斗和灭火器", "脚手架内动火时"),
+        _evidence("本工程搭设落地式脚手架。"),
+        [],
+    )
+
+    assert decision.status is ApplicabilityStatus.NOT_APPLICABLE
+
+
+def test_weather_rule_requires_positive_weather_evidence():
+    decision = assess_rule_applicability(
+        _rule("雨雪天气后应检查安全设施", "雨雪天气后恢复作业时"),
+        _evidence("本工程搭设落地式脚手架。"),
+        [],
+    )
+
+    assert decision.status is ApplicabilityStatus.NOT_APPLICABLE
+
+
+def test_dismantling_rule_requires_dismantling_work_evidence():
+    decision = assess_rule_applicability(
+        _rule("拆除杆件严禁向下抛掷", "脚手架拆除时"),
+        _evidence("本阶段仅进行脚手架搭设。"),
+        [],
+    )
+
+    assert decision.status is ApplicabilityStatus.NOT_APPLICABLE

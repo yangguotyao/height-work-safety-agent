@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     model_audit_max_tokens: int = Field(default=8000, ge=512, le=65536)
     model_resolution_max_tokens: int = Field(default=5000, ge=512, le=65536)
 
+    # The onsite hazard vision model is intentionally isolated from the plan-audit
+    # model so changing one workflow cannot silently change the other.
+    hazard_vision_api_key: str | None = None
+    hazard_vision_base_url: str | None = None
+    hazard_vision_model: str = "qwen3.7-plus"
+    hazard_vision_timeout_seconds: float = Field(default=180.0, ge=10, le=300)
+    hazard_image_max_mb: int = Field(default=10, ge=1, le=20)
+
     database_path: Path = Path("runtime/height_work_agent.sqlite")
     upload_dir: Path = Path("runtime/uploads")
     rule_workbook_path: Path = Path("data/规则化数据库/高处作业结构化规则数据库.xlsx")
@@ -152,7 +160,7 @@ class Settings(BaseSettings):
         if self.auth_bootstrap_password:
             return self.auth_bootstrap_password
         if self.app_env.strip().lower() != "production":
-            return "Admin@123456"
+            return "admin"
         return None
 
 

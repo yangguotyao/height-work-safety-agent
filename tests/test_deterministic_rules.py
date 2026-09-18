@@ -59,3 +59,27 @@ def test_does_not_compare_toe_board_height_with_guardrail_height():
     ]
 
     assert compare_numeric_rule(rule, evidence) is None
+
+
+def test_compares_scaffold_semantic_parameter_against_rule_range():
+    rule = _rule(
+        "作业脚手架宽度不应小于0.8m，且不宜大于1.2m",
+        "作业脚手架宽度不应小于0.8m，且不宜大于1.2m。",
+        "不应小于0.8m，不宜大于1.2m",
+    )
+    rule["_scene_instance"] = {
+        "parameters": {
+            "work_scaffold_width": {
+                "label": "作业脚手架宽度",
+                "value": 1.0,
+                "unit": "m",
+                "source_segment_id": "segment-width",
+            }
+        }
+    }
+
+    decision = compare_numeric_rule(rule, [])
+
+    assert decision is not None
+    assert decision.result is AuditResult.COMPLIANT
+    assert decision.segment_id == "segment-width"

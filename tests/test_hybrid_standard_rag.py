@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from backend.app.graph.audit_graph import AuditGraph
+from backend.app.services.standard_rag import VERIFIED_OCR_SUPPLEMENTS
 
 
 class _RepositoryStub:
@@ -141,3 +142,10 @@ def test_exact_basis_query_excludes_rule_answer_and_marks_independent_match():
     assert evidence[0]["retrieval_type"] == "exact_clause"
     assert evidence[0]["independent_scene_match"] is True
     assert len(evidence) == 1
+
+
+def test_scanned_standard_supplement_contains_searchable_drainage_clause():
+    clauses = VERIFIED_OCR_SUPPLEMENTS["GB 55023-2022"]
+    drainage = next(item for item in clauses if item["clause"] == "4.1.3")
+    assert "排水措施" in drainage["text"]
+    assert "搭设场地不应积水" in drainage["text"]

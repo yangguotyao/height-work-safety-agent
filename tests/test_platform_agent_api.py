@@ -74,18 +74,22 @@ def test_workspace_agent_tools_and_memory_without_login(test_settings):
         assert client.get(f"/api/v1/agent/conversations/{conversation_id}").status_code == 200
 
 
-def test_workspace_mode_removes_login_and_ignores_legacy_auth_flag(test_settings):
+def test_account_mode_requires_login_when_auth_is_enabled(test_settings):
     app = create_app(test_settings.model_copy(update={"enforce_auth": True}))
     with TestClient(app) as client:
         root = client.get("/")
         assert root.status_code == 200
         assert "no-store" in root.headers["cache-control"]
+        assert client.get("/rules/scenes").status_code == 401
+        assert client.get("/api/v1/projects").status_code == 401
+        login = client.post(
+            "/api/v1/auth/login", json={"username": "Admin", "password": "admin"}
+        )
+        assert login.status_code == 200
         assert client.get("/rules/scenes").status_code == 200
         assert client.get("/api/v1/projects").status_code == 200
-        assert client.post("/api/v1/auth/login", json={}).status_code == 404
-        assert client.get("/api/v1/users").status_code == 404
         health = client.get("/health").json()
-        assert health["workspace_mode"] == "single_active_project"
-        assert health["auth_enforced"] is False
+        assert health["workspace_mode"] == "account_scoped_projects"
+        assert health["auth_enforced"] is True
         assert client.get("/health/live").json() == {"status": "ok"}
         assert client.get("/health/ready").json() == {"status": "ok"}

@@ -92,8 +92,16 @@ class ProjectWorkspaceManager:
     @staticmethod
     def public(project: dict[str, Any]) -> dict[str, Any]:
         return {
-            key: project[key]
-            for key in ("id", "name", "code", "created_at", "updated_at")
+            key: project.get(key, "")
+            for key in (
+                "id",
+                "name",
+                "code",
+                "city",
+                "address",
+                "created_at",
+                "updated_at",
+            )
         }
 
     def list(self) -> dict[str, Any]:
@@ -122,7 +130,7 @@ class ProjectWorkspaceManager:
     def active(self) -> dict[str, Any]:
         return self.get(str(self._catalog["active_project_id"]))
 
-    def create(self, name: str) -> dict[str, Any]:
+    def create(self, name: str, *, city: str = "", address: str = "") -> dict[str, Any]:
         normalized = re.sub(r"\s+", " ", name.strip())
         if len(normalized) < 4 or len(normalized) > 80:
             raise ValueError("项目名称需要4至80个字符")
@@ -136,6 +144,8 @@ class ProjectWorkspaceManager:
                 "id": project_id,
                 "name": normalized,
                 "code": f"PROJECT-{project_id[:8].upper()}",
+                "city": re.sub(r"\s+", " ", city.strip())[:60],
+                "address": re.sub(r"\s+", " ", address.strip())[:160],
                 "database_path": str(workspace_dir / "workspace.sqlite"),
                 "upload_dir": str(workspace_dir / "uploads"),
                 "standard_collection": f"{self.base_settings.standard_collection}_{project_id[:8]}",

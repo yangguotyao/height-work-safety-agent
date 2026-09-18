@@ -50,6 +50,10 @@ class SceneInstanceOut(BaseModel):
     segment_ids: list[str] = Field(default_factory=list)
     anchor_segment_ids: list[str] = Field(default_factory=list)
     object_type: str = "general"
+    object_instance_key: str | None = None
+    scaffold_subtype: str | None = None
+    location_label: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
     sources: list[str] = Field(default_factory=list)
     confidence: float = Field(ge=0, le=1)
 
@@ -103,6 +107,19 @@ class BusinessFindingOut(BaseModel):
     atomic_items: list[AuditItemOut] = Field(default_factory=list)
 
 
+class PlanRevisionOut(BaseModel):
+    id: str
+    source_run_id: str
+    revised_run_id: str
+    attempt_no: int
+    status: str
+    comparison: dict[str, Any] = Field(default_factory=dict)
+    revised_filename: str = ""
+    submitted_by: str
+    created_at: datetime
+    completed_at: datetime | None = None
+
+
 class AuditRunOut(BaseModel):
     id: str
     document_id: str
@@ -124,6 +141,7 @@ class AuditRunOut(BaseModel):
     total_elapsed_seconds: float = Field(ge=0, description="从文档保存到审计结束的处理总耗时")
     items: list[AuditItemOut] = Field(default_factory=list)
     findings: list[BusinessFindingOut] = Field(default_factory=list)
+    revisions: list[PlanRevisionOut] = Field(default_factory=list)
 
 
 class ReviewRequest(BaseModel):

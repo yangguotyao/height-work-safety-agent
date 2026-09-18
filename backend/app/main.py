@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import (
     BackgroundTasks,
+    Depends,
     FastAPI,
     File,
     Form,
@@ -20,15 +21,20 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from .api.dynamic_risk import router as dynamic_risk_router
+from .api.auth import COOKIE_NAME, router as auth_router
+from .api.hazard_inspection import router as hazard_inspection_router
 from .api.model_call_monitor import router as model_call_monitor_router
 from .api.platform import router as platform_router
 from .api.project_knowledge import router as project_knowledge_router
 from .api.worker_assistant import router as worker_assistant_router
 from .config import PROJECT_ROOT, Settings, get_settings
 from .db import Database
+from .demo_session import browser_session_id
 from .graph.audit_graph import AuditGraph
 from .mcp_server import build_mcp_server
 from .platform.agents import UnifiedAgentOrchestrator
+from .platform.auth import require_roles
+from .platform.runtime import RuntimeProxy, reset_runtime, set_runtime
 from .platform.context import ContextBuilder, MemoryManager
 from .platform.repository import PlatformRepository
 from .platform.tools import build_tool_registry
@@ -42,6 +48,7 @@ from .schemas import (
     GoldTestCreate,
     GoldTestOut,
     ParseResult,
+    PlanRevisionOut,
     ReviewRequest,
     RuleImportOut,
     SceneListOut,
@@ -50,6 +57,7 @@ from .services.accident_knowledge import AccidentKnowledgeRepository
 from .services.document_service import DocumentService
 from .services.dynamic_risk import DynamicRiskService
 from .services.gold_evaluation import GoldEvaluator, import_gold_cases
+from .services.hazard_inspection import HazardInspectionService
 from .services.learning_repository import LearningRepository
 from .services.model_call_monitor import ModelCallMonitor
 from .services.model_provider import build_audit_model
@@ -57,7 +65,7 @@ from .services.project_knowledge import ProjectKnowledgeService
 from .services.question_bank import QuestionBank
 from .services.risk_card_service import RiskCardService
 from .services.rule_importer import import_rules
-from .services.safety_learning import QuizService, SafetyQAService
+from .services.safety_learning import SafetyQAService
 from .services.safety_log import SafetyLogService
 from .services.standard_rag import StandardRAGService
 from .services.task_chain import TaskChainService
@@ -76,8 +84,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     mcp_server = build_mcp_server(app_settings) if app_settings.mcp_enabled else None
     workspace_manager = ProjectWorkspaceManager(app_settings)
     workspace_switch_lock = RLock()
+    workspace_runtimes: dict[str, dict] = {}
 
-    def activate_workspace(app: FastAPI, workspace: dict, *, persist: bool = False) -> dict:
+    def build_workspace_runtime(workspace: dict) -> dict:
         workspace_settings = workspace_manager.settings_for(workspace)
         database = Database(workspace_settings.resolved_database_path)
         database.initialize()
@@ -118,11 +127,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             workspace_settings.project_name,
         )
         dynamic_risk = DynamicRiskService(
-            database, risk_cards, question_bank, workspace_settings.project_name
+            database, risk_cards, workspace_settings.project_name
         )
-        task_chain = TaskChainService(
-            database, dynamic_risk, learning_repository, question_bank
-        )
+        task_chain = TaskChainService(database, dynamic_risk)
         safety_log = SafetyLogService(
             workspace_settings,
             database,
@@ -131,25 +138,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             task_chain,
             project_knowledge,
         )
-        platform_repository = PlatformRepository(
-            database,
-            project_name=workspace_settings.project_name,
-            session_hours=workspace_settings.auth_session_hours,
-        )
-        platform_repository.bootstrap(
-            username=workspace_settings.auth_bootstrap_username,
-            password=workspace_settings.development_bootstrap_password,
-            display_name=workspace_settings.auth_bootstrap_display_name,
-        )
-        agent_tools = build_tool_registry(platform_repository)
         project_knowledge.sync()
-        runtime_state = {
+        return {
             "settings": workspace_settings,
             "active_workspace": workspace,
             "database": database,
             "repository": repository,
             "document_service": DocumentService(repository, workspace_settings),
             "gold_evaluator": GoldEvaluator(database, repository),
+            "hazard_inspection_service": HazardInspectionService(
+                database, workspace_settings, standard_rag=standard_rag
+            ),
             "standard_rag": standard_rag,
             "model_call_monitor": ModelCallMonitor(database),
             "accident_repository": accident_repository,
@@ -164,45 +163,79 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 learning_repository,
                 standard_rag,
             ),
-            "quiz_service": QuizService(
-                question_bank, worker_repository, learning_repository
-            ),
             "project_knowledge_service": project_knowledge,
             "dynamic_risk_service": dynamic_risk,
             "task_chain_service": task_chain,
             "safety_log_service": safety_log,
             "web_search_service": BochaWebSearchService(workspace_settings),
-            "platform_repository": platform_repository,
-            "agent_tools": agent_tools,
-            "agent_orchestrator": UnifiedAgentOrchestrator(
-                platform_repository,
-                agent_tools,
-                ContextBuilder(
-                    platform_repository,
-                    message_limit=workspace_settings.agent_context_message_limit,
-                    char_budget=workspace_settings.agent_context_char_budget,
-                ),
-                MemoryManager(platform_repository),
-            ),
         }
+
+    def get_workspace_runtime(project_id: str) -> dict:
         with workspace_switch_lock:
-            if persist:
-                workspace = workspace_manager.activate(workspace["id"])
-            runtime_state["active_workspace"] = workspace
-            app.state._state.update(runtime_state)
-            return workspace
+            runtime = workspace_runtimes.get(project_id)
+            if runtime is None:
+                runtime = build_workspace_runtime(workspace_manager.get(project_id))
+                workspace_runtimes[project_id] = runtime
+            return runtime
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         async with AsyncExitStack() as stack:
             if mcp_server is not None:
                 await stack.enter_async_context(mcp_server.session_manager.run())
+            central_database = Database(app_settings.resolved_database_path)
+            central_database.initialize()
+            auth_repository = PlatformRepository(
+                central_database,
+                project_name=workspace_manager.get("default-project")["name"],
+                session_hours=app_settings.auth_session_hours,
+            )
+            auth_repository.bootstrap(
+                username="admin",
+                password="admin",
+                display_name="Admin",
+            )
+            admin_id = auth_repository.db.fetch_one(
+                "SELECT id FROM platform_users WHERE username='admin'"
+            )["id"]
+            for workspace in workspace_manager.list()["projects"]:
+                raw = workspace_manager.get(workspace["id"])
+                known_project = auth_repository.db.fetch_one(
+                    "SELECT id FROM platform_projects WHERE id=?", (raw["id"],)
+                )
+                if raw["id"] == "default-project" or known_project is None:
+                    auth_repository.register_project(
+                        project_id=raw["id"],
+                        name=raw["name"],
+                        code=raw["code"],
+                        owner_user_id=admin_id,
+                    )
+                else:
+                    auth_repository.update_project(raw["id"], raw["name"])
             app.state.workspace_manager = workspace_manager
             app.state.workspace_switch_lock = workspace_switch_lock
-            app.state.activate_workspace = lambda workspace: activate_workspace(
-                app, workspace, persist=True
+            app.state.base_settings = app_settings
+            app.state.auth_repository = auth_repository
+            app.state.platform_repository = auth_repository
+            app.state.workspace_runtimes = workspace_runtimes
+            app.state.get_workspace_runtime = get_workspace_runtime
+            default_runtime = get_workspace_runtime("default-project")
+            proxy_fallback = dict(default_runtime)
+            app.state.proxy_fallback = proxy_fallback
+            for key in default_runtime:
+                setattr(app.state, key, RuntimeProxy(key, proxy_fallback))
+            agent_tools = build_tool_registry(auth_repository)
+            app.state.agent_tools = agent_tools
+            app.state.agent_orchestrator = UnifiedAgentOrchestrator(
+                auth_repository,
+                agent_tools,
+                ContextBuilder(
+                    auth_repository,
+                    message_limit=app_settings.agent_context_message_limit,
+                    char_budget=app_settings.agent_context_char_budget,
+                ),
+                MemoryManager(auth_repository),
             )
-            activate_workspace(app, workspace_manager.active())
             yield
 
     app = FastAPI(
@@ -220,8 +253,63 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_headers=["*"],
         )
 
+    @app.middleware("http")
+    async def account_workspace_context(request: Request, call_next):
+        identity = None
+        repository = getattr(request.app.state, "auth_repository", None)
+        if repository is not None:
+            identity = repository.identity_for_token(
+                request.cookies.get(COOKIE_NAME, "")
+            )
+        request.state.identity = identity
+        runtime_token = None
+        if identity and identity.get("project_id"):
+            try:
+                runtime_token = set_runtime(
+                    request.app.state.get_workspace_runtime(identity["project_id"])
+                )
+            except KeyError:
+                return JSONResponse(status_code=409, content={"detail": "当前项目不存在"})
+        protected = request.url.path.startswith(
+            (
+                "/api/",
+                "/admin/",
+                "/documents",
+                "/audits",
+                "/audit-",
+                "/gold-tests",
+                "/project-knowledge/",
+                "/rules/",
+                "/standards/",
+                "/worker-assistant/",
+                "/dynamic-risks",
+            )
+        )
+        public_api = request.url.path.startswith("/api/v1/auth/")
+        if app_settings.enforce_auth and protected and not public_api and identity is None:
+            return JSONResponse(status_code=401, content={"detail": "请先登录"})
+        if (
+            app_settings.enforce_auth
+            and protected
+            and not public_api
+            and identity is not None
+            and not identity.get("project_id")
+            and request.url.path != "/api/v1/projects"
+        ):
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "请先创建项目", "code": "project_required"},
+            )
+        try:
+            return await call_next(request)
+        finally:
+            if runtime_token is not None:
+                reset_runtime(runtime_token)
+
+    app.include_router(auth_router)
     app.include_router(model_call_monitor_router)
     app.include_router(dynamic_risk_router)
+    app.include_router(hazard_inspection_router)
     app.include_router(worker_assistant_router)
     app.include_router(project_knowledge_router)
     app.include_router(platform_router)
@@ -255,6 +343,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def handle_bad_request(_: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
+    @app.exception_handler(PermissionError)
+    async def handle_forbidden(_: Request, exc: PermissionError) -> JSONResponse:
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
+
     @app.get("/health/live", include_in_schema=False)
     def liveness() -> dict[str, str]:
         return {"status": "ok"}
@@ -286,11 +378,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "model_provider": settings_.model_provider,
             "embedding_provider": settings_.embedding_provider,
             "platform_version": "1.0.0",
-            "workspace_mode": "single_active_project",
+            "workspace_mode": "account_scoped_projects",
             "active_project": request.app.state.workspace_manager.public(
                 request.app.state.active_workspace
             ),
-            "auth_enforced": False,
+            "auth_enforced": app_settings.enforce_auth,
             "mcp_enabled": settings_.mcp_enabled,
         }
 
@@ -393,6 +485,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         graph.invoke(run_id=run_id, document_id=payload.document_id)
         request.app.state.project_knowledge_service.sync()
 
+    def run_revision_graph(
+        request: Request,
+        run_id: str,
+        payload: AuditCreate,
+        revision_id: str,
+    ) -> None:
+        repository: Repository = request.app.state.repository
+        try:
+            run_graph(request, run_id, payload)
+            revised = repository.get_audit_run(run_id)
+            if revised["status"] != "completed":
+                raise ValueError(revised.get("error") or "修订方案审查未完成")
+            repository.complete_plan_revision(revision_id)
+        except Exception as exc:
+            repository.fail_plan_revision(revision_id, str(exc))
+
     @app.post("/audits", response_model=AuditRunOut, status_code=status.HTTP_202_ACCEPTED)
     def create_audit(
         payload: AuditCreate, background_tasks: BackgroundTasks, request: Request
@@ -409,6 +517,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             model_provider=provider,
             model_name=model.model_name,
             rule_limit=0,
+            browser_session_id=browser_session_id(request),
         )
         background_tasks.add_task(run_graph, request, run["id"], payload)
         return run
@@ -432,6 +541,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             model_provider=model.provider_name,
             model_name=model.model_name,
             rule_limit=0,
+            browser_session_id=browser_session_id(request),
         )
         background_tasks.add_task(run_graph, request, run["id"], payload)
         return run
@@ -462,6 +572,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             model_provider=model.provider_name,
             model_name=model.model_name,
             rule_limit=0,
+            browser_session_id=browser_session_id(request),
         )
         background_tasks.add_task(run_graph, request, run["id"], payload)
         return run
@@ -469,6 +580,52 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/audits/{run_id}", response_model=AuditRunOut)
     def get_audit(run_id: str, request: Request) -> dict:
         return request.app.state.repository.get_audit_run(run_id, include_items=True)
+
+    @app.post(
+        "/api/v1/audits/{run_id}/revisions",
+        response_model=PlanRevisionOut,
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def submit_plan_revision(
+        run_id: str,
+        request: Request,
+        background_tasks: BackgroundTasks,
+        file: Annotated[UploadFile, File(description="修订后的 DOCX 或 DOC 施工方案")],
+        identity: Annotated[
+            dict, Depends(require_roles("admin", "safety_officer", "team_leader"))
+        ],
+        use_llm: Annotated[bool, Form()] = True,
+    ) -> dict:
+        service: DocumentService = request.app.state.document_service
+        repository: Repository = request.app.state.repository
+        settings_: Settings = request.app.state.settings
+        source = repository.get_audit_run(run_id, include_items=True)
+        if source["status"] != "completed":
+            raise ValueError("原方案审查完成后才能提交修订方案")
+        if not source["findings"]:
+            raise ValueError("原方案没有需要整改的问题")
+        document = await service.save_upload(file)
+        await run_in_threadpool(service.parse_document, document["id"])
+        payload = AuditCreate(document_id=document["id"], use_llm=use_llm)
+        model = build_audit_model(settings_, use_llm)
+        revised_run = repository.create_audit_run(
+            document_id=document["id"],
+            model_provider=model.provider_name,
+            model_name=model.model_name,
+            rule_limit=0,
+            browser_session_id=browser_session_id(request),
+        )
+        revision = repository.create_plan_revision(
+            run_id, revised_run["id"], identity["display_name"]
+        )
+        background_tasks.add_task(
+            run_revision_graph,
+            request,
+            revised_run["id"],
+            payload,
+            revision["id"],
+        )
+        return revision
 
     @app.patch("/audit-items/{item_id}/review", response_model=AuditRunOut)
     def review_item(item_id: str, payload: ReviewRequest, request: Request) -> dict:

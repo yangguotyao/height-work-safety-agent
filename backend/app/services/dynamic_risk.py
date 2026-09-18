@@ -11,7 +11,6 @@ from zoneinfo import ZoneInfo
 
 from ..db import Database, json_load
 from ..repositories import utc_now
-from .question_bank import QuestionBank
 from .risk_card_service import RiskCardService, filter_card_for_task_action
 
 RISK_ORDER = {"red": 3, "yellow": 2, "green": 1}
@@ -95,21 +94,24 @@ class DynamicRiskService:
         self,
         database: Database,
         risk_cards: RiskCardService,
-        question_bank: QuestionBank,
         project_name: str,
     ):
         self.db = database
         self.risk_cards = risk_cards
-        self.question_bank = question_bank
         self.project_name = project_name
 
     def _tasks_for_date(
-        self, assessment_date: str, *, include_test: bool = False
+        self,
+        assessment_date: str,
+        *,
+        include_test: bool = False,
+        browser_session_id: str = "default-session",
     ) -> list[dict[str, Any]]:
         rows = self.db.fetch_all(
             """SELECT * FROM work_tasks WHERE scheduled_date = ?
+               AND browser_session_id IN ('baseline', 'legacy', ?)
                ORDER BY created_at, id""",
-            (assessment_date,),
+            (assessment_date, browser_session_id),
         )
         tasks = [_task_dict(row) for row in rows]
         if not include_test:
@@ -175,7 +177,8 @@ class DynamicRiskService:
         scenes = set(task.get("scenes") or [])
         rows = self.db.fetch_all(
             """SELECT i.id, i.rule_id, i.scene, i.issue, i.suggestion, i.result,
-                      i.final_result, i.final_text, i.review_status, r.risk_level, r.rule_effect,
+                      i.final_result, i.final_text, i.review_status,
+                      r.risk_level, r.rule_effect,
                       r.standard_code, r.clause, r.original_text
                FROM audit_items i JOIN audit_rules r ON r.rule_id = i.rule_id
                WHERE i.run_id = ? ORDER BY i.created_at, i.id""",
@@ -190,62 +193,11 @@ class DynamicRiskService:
             results.append(row)
         return results[:8]
 
-    def _active_wrong_questions(self, task: dict[str, Any]) -> list[dict[str, Any]]:
-        worker_refs = {str(task.get("worker_ref") or "").strip()}
-        if task.get("team_ref"):
-            rows = self.db.fetch_all(
-                "SELECT DISTINCT worker_ref FROM work_tasks WHERE team_ref = ?",
-                (task["team_ref"],),
-            )
-            worker_refs.update(str(row["worker_ref"] or "").strip() for row in rows)
-        worker_refs.discard("")
-        if not worker_refs:
-            return []
-        placeholders = ",".join("?" for _ in worker_refs)
-        rows = self.db.fetch_all(
-            f"""SELECT worker_ref, question_id, is_correct, created_at, id
-                FROM quiz_answers WHERE worker_ref IN ({placeholders})
-                ORDER BY worker_ref, question_id, created_at DESC, id DESC""",
-            tuple(sorted(worker_refs)),
-        )
-        history: dict[tuple[str, str], list[bool]] = {}
-        for row in rows:
-            history.setdefault((row["worker_ref"], row["question_id"]), []).append(
-                bool(row["is_correct"])
-            )
-        bank_scene = self.question_bank.infer_scene(task)
-        result = []
-        for (worker_ref, question_id), states in history.items():
-            question = self.question_bank.questions.get(question_id)
-            if not question or question["scene"] != bank_scene:
-                continue
-            if False in states and states[:2] != [True, True]:
-                result.append({"worker_ref": worker_ref, "question": question})
-        return result
-
-    def _review_questions(
-        self, task: dict[str, Any], wrong: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
-        scene = self.question_bank.infer_scene(task)
-        preferred = [entry["question"] for entry in wrong]
-        candidates = [
-            item for item in self.question_bank.questions.values() if item["scene"] == scene
-        ]
-        candidates.sort(key=lambda item: item["id"])
-        ordered = []
-        for item in [*preferred, *candidates]:
-            if item["id"] not in {entry["id"] for entry in ordered}:
-                ordered.append(item)
-        singles = [item for item in ordered if item["type"] == "single_choice"][:3]
-        judgements = [item for item in ordered if item["type"] == "true_false"][:2]
-        return [self.question_bank.public(item) for item in [*singles, *judgements]]
-
     def _evaluate_task(
         self, task: dict[str, Any], *, refresh_weather: bool
     ) -> dict[str, Any]:
         card = self._card(task, refresh_weather=refresh_weather)
         audit_issues = self._audit_issues(task)
-        wrong = self._active_wrong_questions(task)
         triggers: list[dict[str, Any]] = []
 
         def trigger(
@@ -326,16 +278,6 @@ class DynamicRiskService:
                 source_id=issue["id"],
             )
 
-        if wrong:
-            count = len(wrong)
-            trigger(
-                "LEARNING_WEAKNESS",
-                "yellow" if count >= 2 else "info",
-                "班组近期存在相关知识薄弱项",
-                f"当前作业场景有{count}个仍需巩固的错题知识点，仅用于提高培训和检查优先级。",
-                source_type="learning",
-            )
-
         level = "green"
         for item in triggers:
             if RISK_ORDER.get(item["level"], 0) > RISK_ORDER[level]:
@@ -358,6 +300,10 @@ class DynamicRiskService:
             interventions.append("作业前优先完成黄色触发项的现场核查和班前交底。")
         else:
             interventions.append("按任务风险卡执行常规控制措施。")
+        interventions.extend(
+            _display_text(str(issue.get("suggestion") or ""))
+            for issue in audit_issues
+        )
         interventions.extend(_display_text(text) for text in (card.get("pre_job_checks") or [])[:4])
         interventions.extend(
             _display_text(text) for text in (card.get("prohibited_behaviors") or [])[:2]
@@ -393,7 +339,7 @@ class DynamicRiskService:
             "triggers": triggers,
             "evidences": evidences[:16],
             "interventions": interventions,
-            "review_questions": self._review_questions(task, wrong),
+            "review_questions": [],
             "weather": weather,
         }
 
@@ -455,21 +401,27 @@ class DynamicRiskService:
         trigger_type: str = "data_refresh",
         refresh_weather: bool = True,
         include_test: bool = False,
+        browser_session_id: str = "default-session",
     ) -> dict[str, Any]:
         target_date = assessment_date or datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
         try:
             date.fromisoformat(target_date)
         except ValueError as exc:
             raise ValueError("评估日期必须使用YYYY-MM-DD格式") from exc
-        tasks = self._tasks_for_date(target_date, include_test=include_test)
+        tasks = self._tasks_for_date(
+            target_date,
+            include_test=include_test,
+            browser_session_id=browser_session_id,
+        )
         results = [self._evaluate_task(task, refresh_weather=refresh_weather) for task in tasks]
         fingerprint = self._input_fingerprint(target_date, results, include_test)
         existing = self.db.fetch_one(
             """SELECT id FROM dynamic_risk_runs
                WHERE assessment_date = ? AND include_test = ? AND status = 'completed'
+                 AND browser_session_id = ?
                  AND input_fingerprint = ?
                ORDER BY created_at DESC, id DESC LIMIT 1""",
-            (target_date, int(include_test), fingerprint),
+            (target_date, int(include_test), browser_session_id, fingerprint),
         )
         if existing:
             stored = self.get_run(existing["id"])
@@ -479,10 +431,18 @@ class DynamicRiskService:
         now = utc_now()
         self.db.execute(
             """INSERT INTO dynamic_risk_runs
-               (id, assessment_date, trigger_type, include_test, input_fingerprint,
+               (id, browser_session_id, assessment_date, trigger_type, include_test, input_fingerprint,
                 status, created_at)
-               VALUES (?, ?, ?, ?, ?, 'running', ?)""",
-            (run_id, target_date, trigger_type, int(include_test), fingerprint, now),
+               VALUES (?, ?, ?, ?, ?, ?, 'running', ?)""",
+            (
+                run_id,
+                browser_session_id,
+                target_date,
+                trigger_type,
+                int(include_test),
+                fingerprint,
+                now,
+            ),
         )
         counts = Counter(item["risk_level"] for item in results)
         weather_snapshots = {item["task"]["id"]: item["weather"] for item in results}
@@ -607,12 +567,14 @@ class DynamicRiskService:
         row = self.db.fetch_one(
             """SELECT id FROM dynamic_risk_runs
                WHERE assessment_date = ? AND include_test = ? AND status = 'completed'
+                 AND browser_session_id = ?
                  AND input_fingerprint <> ''
                  AND (created_at < ? OR (created_at = ? AND id < ?))
                ORDER BY created_at DESC, id DESC LIMIT 1""",
             (
                 run["assessment_date"],
                 int(run.get("include_test") or 0),
+                run.get("browser_session_id") or "default-session",
                 run["created_at"],
                 run["created_at"],
                 run["id"],
@@ -746,26 +708,38 @@ class DynamicRiskService:
         return run
 
     def latest(
-        self, assessment_date: str | None = None, *, include_test: bool = False
+        self,
+        assessment_date: str | None = None,
+        *,
+        include_test: bool = False,
+        browser_session_id: str = "default-session",
     ) -> dict[str, Any] | None:
         target = assessment_date or datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
         row = self.db.fetch_one(
             """SELECT id FROM dynamic_risk_runs
                WHERE assessment_date = ? AND status = 'completed' AND include_test = ?
+                 AND browser_session_id IN ('baseline', 'legacy', ?)
                  AND input_fingerprint <> ''
                ORDER BY created_at DESC, id DESC LIMIT 1""",
-            (target, int(include_test)),
+            (target, int(include_test), browser_session_id),
         )
         return self.get_run(row["id"]) if row else None
 
-    def list_runs(self, limit: int = 20, *, include_test: bool = False) -> list[dict[str, Any]]:
+    def list_runs(
+        self,
+        limit: int = 20,
+        *,
+        include_test: bool = False,
+        browser_session_id: str = "default-session",
+    ) -> list[dict[str, Any]]:
         return self.db.fetch_all(
             """SELECT id, assessment_date, trigger_type, status, task_count, red_count,
                       yellow_count, green_count, include_test, created_at, completed_at
                FROM dynamic_risk_runs
                WHERE include_test = ? AND input_fingerprint <> ''
+                 AND browser_session_id IN ('baseline', 'legacy', ?)
                ORDER BY created_at DESC, id DESC LIMIT ?""",
-            (int(include_test), limit),
+            (int(include_test), browser_session_id, limit),
         )
 
     def recalculate(self, run_id: str) -> dict[str, Any]:
@@ -775,6 +749,7 @@ class DynamicRiskService:
             trigger_type="data_refresh",
             refresh_weather=True,
             include_test=bool(run["include_test"]),
+            browser_session_id=run.get("browser_session_id") or "default-session",
         )
 
     def refresh_for_worker(

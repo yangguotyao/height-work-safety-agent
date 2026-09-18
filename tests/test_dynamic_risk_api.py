@@ -82,7 +82,7 @@ def test_safe_task_is_green_without_manual_confirmation(test_settings):
         trigger["source_type"] == "confirmation"
         for trigger in body["items"][0]["triggers"]
     )
-    assert len(body["items"][0]["review_questions"]) == 5
+    assert body["items"][0]["review_questions"] == []
     assert all(not text.endswith(">") for text in body["items"][0]["interventions"])
 
 
@@ -129,36 +129,14 @@ def test_weather_change_creates_new_red_version(test_settings):
     )
 
 
-def test_quiz_submission_automatically_creates_learning_changed_version(test_settings):
+def test_quiz_endpoints_are_not_exposed(test_settings):
     app = create_app(test_settings)
     with TestClient(app) as client:
-        app.state.dynamic_risk_service.risk_cards.weather = MutableWeather()
-        task = _create_task(client, "今天下午在12层拆除外墙模板", "动态学习工人")
-        first_id = client.get("/dynamic-risks/latest").json()["id"]
-        quiz = client.post(
+        response = client.post(
             "/worker-assistant/quizzes",
-            json={"worker_ref": "动态学习工人", "task_id": task["task_id"]},
-        ).json()
-        answers = []
-        for index, question in enumerate(quiz["questions"]):
-            correct = app.state.question_bank.get(question["id"])["answer"]
-            keys = [option["key"] for option in question["options"]]
-            submitted = next(key for key in keys if key != correct) if index < 2 else correct
-            answers.append({"question_id": question["id"], "answer": submitted})
-        submitted = client.post(
-            f"/worker-assistant/quizzes/{quiz['id']}/submit",
-            json={"answers": answers},
+            json={"worker_ref": "动态学习工人", "scene": "opening_work"},
         )
-        latest = client.get("/dynamic-risks/latest").json()
-
-    assert submitted.status_code == 200, submitted.text
-    assert latest["id"] != first_id
-    assert latest["trigger_type"] == "learning_changed"
-    assert latest["items"][0]["risk_level"] == "yellow"
-    assert any(
-        trigger["code"] == "LEARNING_WEAKNESS"
-        for trigger in latest["items"][0]["triggers"]
-    )
+    assert response.status_code == 404
 
 
 def test_daily_run_aggregates_multiple_teams_once(test_settings):

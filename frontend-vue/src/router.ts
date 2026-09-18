@@ -13,6 +13,16 @@ export default createRouter({
     },
     { path: '/worker', component: () => import('./views/WorkerView.vue') },
     { path: '/risk', component: () => import('./views/DynamicRiskView.vue') },
+    {
+      path: '/hazards',
+      component: () => import('./views/HazardInspectionView.vue'),
+      meta: { manager: true }
+    },
+    {
+      path: '/rectification',
+      component: () => import('./views/RectificationView.vue'),
+      meta: { manager: true }
+    },
     { path: '/agent', component: () => import('./views/AgentView.vue') },
     { path: '/knowledge', redirect: '/' },
     { path: '/:pathMatch(.*)*', redirect: '/' }

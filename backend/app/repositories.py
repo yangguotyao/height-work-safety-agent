@@ -131,15 +131,18 @@ class Repository:
         model_provider: str,
         model_name: str | None,
         rule_limit: int,
+        browser_session_id: str = "default-session",
     ) -> dict[str, Any]:
         run_id = uuid4().hex
         self.db.execute(
             """INSERT INTO audit_runs
-               (id, document_id, status, model_provider, model_name, rule_limit, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               (id, document_id, browser_session_id, status, model_provider, model_name,
+                rule_limit, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 run_id,
                 document_id,
+                browser_session_id,
                 AuditStatus.CREATED.value,
                 model_provider,
                 model_name,
@@ -196,7 +199,161 @@ class Repository:
         row["candidate_rule_count"] = row["rule_limit"]
         row["items"] = self.list_audit_items(run_id) if include_items else []
         row["findings"] = build_business_findings(row["items"]) if include_items else []
+        row["revisions"] = self.list_plan_revisions(run_id)
         return row
+
+    def list_plan_revisions(self, source_run_id: str) -> list[dict[str, Any]]:
+        rows = self.db.fetch_all(
+            """SELECT p.*, d.filename revised_filename
+               FROM plan_revisions p
+               JOIN audit_runs a ON a.id=p.revised_run_id
+               JOIN documents d ON d.id=a.document_id
+               WHERE p.source_run_id=? ORDER BY p.attempt_no DESC""",
+            (source_run_id,),
+        )
+        for row in rows:
+            row["comparison"] = json_load(row.pop("comparison_json"), {})
+        return rows
+
+    def create_plan_revision(
+        self, source_run_id: str, revised_run_id: str, submitted_by: str
+    ) -> dict[str, Any]:
+        source = self.db.fetch_one("SELECT id FROM audit_runs WHERE id=?", (source_run_id,))
+        if source is None:
+            raise KeyError("原方案审查不存在")
+        count = self.db.fetch_one(
+            "SELECT COALESCE(MAX(attempt_no), 0) value FROM plan_revisions WHERE source_run_id=?",
+            (source_run_id,),
+        )
+        revision_id = uuid4().hex
+        self.db.execute(
+            """INSERT INTO plan_revisions
+               (id, source_run_id, revised_run_id, attempt_no, status,
+                comparison_json, submitted_by, created_at)
+               VALUES (?, ?, ?, ?, 'analyzing', '{}', ?, ?)""",
+            (
+                revision_id,
+                source_run_id,
+                revised_run_id,
+                int(count["value"] if count else 0) + 1,
+                submitted_by,
+                utc_now(),
+            ),
+        )
+        return self.list_plan_revisions(source_run_id)[0]
+
+    def complete_plan_revision(self, revision_id: str) -> dict[str, Any]:
+        revision = self.db.fetch_one("SELECT * FROM plan_revisions WHERE id=?", (revision_id,))
+        if revision is None:
+            raise KeyError("方案修订记录不存在")
+        original = self.get_audit_run(revision["source_run_id"], include_items=True)
+        revised = self.get_audit_run(revision["revised_run_id"], include_items=True)
+        revised_by_rule = {item["rule_id"]: item for item in revised["items"]}
+        details = []
+        counts = {"resolved": 0, "partial": 0, "unresolved": 0, "uncertain": 0}
+        actionable = {"不符合", "未说明"}
+        for finding in original["findings"]:
+            matched = [
+                revised_by_rule[rule_id]
+                for rule_id in finding["rule_ids"]
+                if rule_id in revised_by_rule
+            ]
+            results = [item.get("final_result") or item["result"] for item in matched]
+            consistency_check = bool(finding["rule_ids"]) and all(
+                rule_id.startswith("PLAN-CONSISTENCY-")
+                for rule_id in finding["rule_ids"]
+            )
+            if not matched and consistency_check:
+                outcome = "resolved"
+                explanation = "修订方案中已未再检出该项方案描述与计算书矛盾。"
+            elif not matched or any(result == "需人工复核" for result in results):
+                outcome = "uncertain"
+                explanation = "修订方案中的对应证据不足，暂时无法判断原问题是否消除。"
+            elif all(result not in actionable for result in results):
+                outcome = "resolved"
+                explanation = "修订方案已通过原问题对应审查项。"
+            elif any(result not in actionable for result in results):
+                outcome = "partial"
+                explanation = "原问题已有部分补充，但仍有对应审查项未通过。"
+            else:
+                outcome = "unresolved"
+                explanation = "原问题对应审查项在修订方案中仍未通过。"
+            counts[outcome] += 1
+            remaining_items = [
+                item
+                for item in matched
+                if (item.get("final_result") or item["result"])
+                in {*actionable, "需人工复核"}
+            ]
+            remaining_issues = [
+                {
+                    "rule_id": item["rule_id"],
+                    "result": item.get("final_result") or item["result"],
+                    "issue": item.get("issue") or "对应审查项仍未通过。",
+                    "suggestion": item.get("suggestion") or "请补充对应方案内容。",
+                    "source_location": item.get("source_location") or "修订方案全文",
+                }
+                for item in remaining_items
+            ]
+            quotes = list(
+                dict.fromkeys(
+                    item["plan_quote"].strip()
+                    for item in matched
+                    if item.get("plan_quote", "").strip()
+                )
+            )[:2]
+            details.append(
+                {
+                    "finding_id": finding["id"],
+                    "title": finding["title"],
+                    "original_issue": finding["issue"],
+                    "outcome": outcome,
+                    "explanation": (
+                        f"原问题已有部分补充，但仍有{len(remaining_issues)}个对应审查项未通过。"
+                        if outcome == "partial" and remaining_issues
+                        else explanation
+                    ),
+                    "remaining_issues": remaining_issues,
+                    "revised_evidence": quotes,
+                }
+            )
+        status = (
+            "closed"
+            if details and counts["resolved"] == len(details)
+            else "needs_revision"
+        )
+        comparison = {
+            "result": status,
+            "original_finding_count": len(details),
+            "resolved_count": counts["resolved"],
+            "partial_count": counts["partial"],
+            "unresolved_count": counts["unresolved"],
+            "uncertain_count": counts["uncertain"],
+            "summary": (
+                "原方案审查问题已全部消除，本轮方案整改自动完成。"
+                if status == "closed"
+                else "修订方案仍有原审查问题未完全消除，建议继续修订后再次提交。"
+            ),
+            "details": details,
+        }
+        now = utc_now()
+        self.db.execute(
+            """UPDATE plan_revisions SET status=?, comparison_json=?, completed_at=?
+               WHERE id=?""",
+            (status, json.dumps(comparison, ensure_ascii=False), now, revision_id),
+        )
+        return next(
+            item
+            for item in self.list_plan_revisions(revision["source_run_id"])
+            if item["id"] == revision_id
+        )
+
+    def fail_plan_revision(self, revision_id: str, message: str) -> None:
+        self.db.execute(
+            """UPDATE plan_revisions SET status='failed', comparison_json=?, completed_at=?
+               WHERE id=?""",
+            (json.dumps({"error": message}, ensure_ascii=False), utc_now(), revision_id),
+        )
 
     def create_audit_item(self, values: dict[str, Any], evidences: list[dict[str, Any]]) -> str:
         item_id = uuid4().hex

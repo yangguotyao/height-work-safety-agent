@@ -106,6 +106,12 @@ def classify_plan_obligation(rule: dict) -> RuleScopeDecision:
     )
     requirement = str(rule.get("requirement", ""))
 
+    if str(rule.get("rule_effect", "")) == "推荐/允许":
+        return RuleScopeDecision(
+            PlanObligation.REFERENCE_ONLY,
+            "本条属于推荐或允许性做法，可作为优化建议，不因方案未采用而形成“未说明”问题。",
+        )
+
     if rule.get("scene") == "安全带使用" and re.search(
         r"全身式系带|前胸|后背|缓冲器|安全绳长度|连接点|使用者.*培训", text
     ):

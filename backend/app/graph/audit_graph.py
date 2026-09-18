@@ -20,6 +20,7 @@ from ..services.document_scope import assess_construction_scheme_document
 from ..services.evidence_dedup import deduplicate_standard_evidence
 from ..services.model_provider import AuditModel, requirement_items
 from ..services.numeric_validation import validate_numeric_comparison
+from ..services.plan_consistency import detect_plan_consistency_issues
 from ..services.retrieval import (
     explicit_semantic_compliance_evidence,
     retrieve_global_counter_evidence,
@@ -29,9 +30,10 @@ from ..services.retrieval import (
 from ..services.rule_applicability import assess_rule_applicability
 from ..services.rule_bundles import build_rule_bundles
 from ..services.rule_scope import classify_plan_obligation, filter_rules_for_document_scope
+from ..services.scaffold_objects import extract_scaffold_object_cards
 from ..services.scene_router import (
-    build_scene_keyword_hints,
     build_scene_context_batches,
+    build_scene_keyword_hints,
     filter_model_scene_instances,
     merge_scene_instances,
 )
@@ -77,6 +79,7 @@ class AuditGraph:
         builder.add_node("assess_rule_applicability", self._assess_rule_applicability)
         builder.add_node("build_rule_bundles", self._build_rule_bundles)
         builder.add_node("audit_rule_bundles", self._audit_rule_bundles)
+        builder.add_node("audit_document_consistency", self._audit_document_consistency)
         builder.add_node("validate_persistence", self._validate_persistence)
         builder.add_edge(START, "load_document")
         builder.add_edge("load_document", "route_scene_instances")
@@ -87,7 +90,8 @@ class AuditGraph:
         builder.add_edge("expand_candidate_rules", "assess_rule_applicability")
         builder.add_edge("assess_rule_applicability", "build_rule_bundles")
         builder.add_edge("build_rule_bundles", "audit_rule_bundles")
-        builder.add_edge("audit_rule_bundles", "validate_persistence")
+        builder.add_edge("audit_rule_bundles", "audit_document_consistency")
+        builder.add_edge("audit_document_consistency", "validate_persistence")
         builder.add_edge("validate_persistence", END)
         self.compiled = builder.compile()
 
@@ -133,6 +137,7 @@ class AuditGraph:
             return {"scenes": [], "scene_instances": []}
         available = self.repository.list_scenes()
         keyword_hints = build_scene_keyword_hints(state["segments"], available)
+        object_cards = extract_scaffold_object_cards(state["segments"], available)
         batches = build_scene_context_batches(state["segments"])
         model_instances: list[dict[str, Any]] = []
         if self.model.provider_name != "mock" and batches:
@@ -164,7 +169,10 @@ class AuditGraph:
         # In real audits keywords only recall passages for the model. The final
         # structured instances must all be confirmed by a model response. Mock mode
         # keeps the hints as a local-development fallback because it has no model.
-        confirmed_instances = keyword_hints if self.model.provider_name == "mock" else []
+        confirmed_instances = [
+            *object_cards,
+            *(keyword_hints if self.model.provider_name == "mock" else []),
+        ]
         instances = merge_scene_instances(
             confirmed_instances, model_instances, state["segments"], available
         )
@@ -1333,6 +1341,21 @@ class AuditGraph:
         ]
         if len(generated) != total_rules:
             raise ValueError("规则包输出未覆盖全部候选原子规则")
+        return {"generated_items": generated}
+
+    def _audit_document_consistency(self, state: AuditState) -> dict[str, Any]:
+        self._mark_node(state, "audit_document_consistency", AuditStatus.AUDITING)
+        consistency_items = detect_plan_consistency_issues(
+            state["run_id"], state["segments"]
+        )
+        for item in consistency_items:
+            self.repository.create_audit_item(item, item["evidences"])
+        generated = [*state.get("generated_items", []), *consistency_items]
+        self.repository.update_audit_run(
+            state["run_id"],
+            rule_limit=len(generated),
+            completed_rules=len(generated),
+        )
         return {"generated_items": generated}
 
     def _validate_persistence(self, state: AuditState) -> dict[str, Any]:
