@@ -51,6 +51,15 @@ class WebSearchInput(BaseModel):
     count: int = Field(default=5, ge=1, le=10)
 
 
+class WeatherInput(BaseModel):
+    work_time: str = Field(default="今天", min_length=1, max_length=50)
+
+
+class GeneralQuestionInput(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    context_packets: list[dict[str, Any]] = Field(default_factory=list, max_length=20)
+
+
 @dataclass(frozen=True)
 class ToolContext:
     app: Any
@@ -254,6 +263,16 @@ def build_tool_registry(repository: PlatformRepository) -> ToolRegistry:
             data["query"], count=data.get("count")
         )
 
+    def weather_forecast(context: ToolContext, data: dict[str, Any]) -> dict[str, Any]:
+        return context.app.state.weather_provider.get_forecast(data["work_time"])
+
+    def general_answer(context: ToolContext, data: dict[str, Any]) -> dict[str, Any]:
+        return context.app.state.assistant_model_service.answer_general(
+            question=data["question"],
+            context_packets=data.get("context_packets") or [],
+            project_name=context.identity["project_name"],
+        )
+
     specs = [
         ToolSpec(
             "system.overview",
@@ -337,6 +356,22 @@ def build_tool_registry(repository: PlatformRepository) -> ToolRegistry:
             WebSearchInput,
             web_search,
             frozenset({"web_agent"}),
+            ALL_ROLES,
+        ),
+        ToolSpec(
+            "weather.forecast",
+            "读取当前项目位置今天、明天或后天的彩云天气预报。",
+            WeatherInput,
+            weather_forecast,
+            frozenset({"weather_agent"}),
+            ALL_ROLES,
+        ),
+        ToolSpec(
+            "assistant.answer",
+            "回答不需要项目业务数据或实时联网检索的通用问题。",
+            GeneralQuestionInput,
+            general_answer,
+            frozenset({"general_agent"}),
             ALL_ROLES,
         ),
     ]

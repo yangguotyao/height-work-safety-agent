@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from ..services.assistant_model import AssistantModelService
 from .context import ContextBuilder, MemoryManager
 from .repository import PlatformRepository
 from .tools import ToolContext, ToolRegistry
@@ -17,6 +18,8 @@ AGENT_LABELS = {
     "risk_agent": "风险分析 Agent",
     "safety_log_agent": "安全日志 Agent",
     "web_agent": "联网问答 Agent",
+    "weather_agent": "项目天气 Agent",
+    "general_agent": "通用问答 Agent",
 }
 
 
@@ -31,6 +34,7 @@ class UnifiedAgentState(TypedDict, total=False):
     tool_results: list[dict[str, Any]]
     answer: str
     metadata: dict[str, Any]
+    routing_mode: str
 
 
 def _contains_any(text: str, words: tuple[str, ...]) -> bool:
@@ -254,13 +258,56 @@ class WebAgent(SpecialistAgent):
             state, "web.search", {"query": state["user_message"], "count": 5}
         )
         text = result.get("answer") or result.get("message") or "联网问答暂时不可用。"
-        items = result.get("items") or []
-        if items and not any(item["url"] in text for item in items):
-            text += "\n\n来源：\n" + "\n".join(
-                f"[{index}] {item['title']}\n{item['url']}"
-                for index, item in enumerate(items, 1)
-            )
         return {"agent": self.name, "tool": "web.search", "result": result, "text": text}
+
+
+class WeatherAgent(SpecialistAgent):
+    name = "weather_agent"
+
+    @staticmethod
+    def _work_time(message: str) -> str:
+        day = next((item for item in ("后天", "明天", "今天") if item in message), "今天")
+        period = next(
+            (item for item in ("早上", "上午", "中午", "下午", "晚上", "夜间") if item in message),
+            "",
+        )
+        return f"{day}{period}"
+
+    def run(self, state: UnifiedAgentState) -> dict[str, Any]:
+        work_time = self._work_time(state["user_message"])
+        result = self.invoke_tool(state, "weather.forecast", {"work_time": work_time})
+        text = result.get("summary") or "天气服务暂时没有返回有效结果。"
+        alerts = result.get("alerts") or []
+        if alerts:
+            text += "\n天气预警：" + "；".join(str(item) for item in alerts[:3])
+        if result.get("observed_at"):
+            text += f"\n数据时间：{result['observed_at']}"
+        return {
+            "agent": self.name,
+            "tool": "weather.forecast",
+            "result": result,
+            "text": text,
+        }
+
+
+class GeneralAgent(SpecialistAgent):
+    name = "general_agent"
+
+    def run(self, state: UnifiedAgentState) -> dict[str, Any]:
+        result = self.invoke_tool(
+            state,
+            "assistant.answer",
+            {
+                "question": state["user_message"],
+                "context_packets": state.get("context_packets", []),
+            },
+        )
+        return {
+            "agent": self.name,
+            "tool": "assistant.answer",
+            "result": result,
+            "text": result.get("answer") or "暂时无法回答这个问题。",
+        }
 
 
 class UnifiedAgentOrchestrator:
@@ -270,11 +317,13 @@ class UnifiedAgentOrchestrator:
         tools: ToolRegistry,
         context_builder: ContextBuilder,
         memory: MemoryManager,
+        planner: AssistantModelService,
     ):
         self.repository = repository
         self.tools = tools
         self.context_builder = context_builder
         self.memory = memory
+        self.planner = planner
         self.agents: dict[str, SpecialistAgent] = {
             "coordinator": SpecialistAgent(tools),
             "audit_agent": AuditAgent(tools),
@@ -283,21 +332,33 @@ class UnifiedAgentOrchestrator:
             "risk_agent": RiskAgent(tools),
             "safety_log_agent": SafetyLogAgent(tools),
             "web_agent": WebAgent(tools),
+            "weather_agent": WeatherAgent(tools),
+            "general_agent": GeneralAgent(tools),
         }
         builder = StateGraph(UnifiedAgentState)
         builder.add_node("route", self._route)
         builder.add_node("build_context", self._build_context)
         builder.add_node("delegate", self._delegate)
         builder.add_node("synthesize", self._synthesize)
-        builder.add_edge(START, "route")
-        builder.add_edge("route", "build_context")
-        builder.add_edge("build_context", "delegate")
+        builder.add_edge(START, "build_context")
+        builder.add_edge("build_context", "route")
+        builder.add_edge("route", "delegate")
         builder.add_edge("delegate", "synthesize")
         builder.add_edge("synthesize", END)
         self.graph = builder.compile()
 
     def _route(self, state: UnifiedAgentState) -> dict[str, Any]:
         text = state["user_message"]
+        planned = self.planner.plan(
+            message=text,
+            context_packets=state.get("context_packets", []),
+            project_name=state["identity"]["project_name"],
+        )
+        if planned:
+            if state["identity"]["project_role"] == "worker":
+                planned = [item for item in planned if item != "audit_agent"]
+            if planned:
+                return {"agent_names": planned, "routing_mode": "model"}
         selected: list[str] = []
         log_query = _contains_any(text, ("安全日志", "作业日志"))
         if log_query:
@@ -307,9 +368,23 @@ class UnifiedAgentOrchestrator:
         ):
             selected.append("audit_agent")
         if not log_query and _contains_any(
-            text, ("动态风险", "风险分析", "风险评估", "红色", "黄色", "天气", "今日风险")
+            text,
+            (
+                "动态风险",
+                "风险分析",
+                "风险评估",
+                "红色风险",
+                "黄色风险",
+                "今日风险",
+                "风险清单",
+                "风险等级",
+            ),
         ):
             selected.append("risk_agent")
+        if not log_query and not selected and _contains_any(
+            text, ("天气", "气温", "温度", "下雨", "降雨", "风速")
+        ):
+            selected.append("weather_agent")
         accident_query = _contains_any(text, ("相似事故", "相关事故", "事故案例"))
         if not log_query and _contains_any(
             text, ("知识图谱", "知识库", "相似事故", "相关事故", "事故案例", "关联")
@@ -338,17 +413,21 @@ class UnifiedAgentOrchestrator:
             project_terms = (
                 "项目", "施工", "高处", "作业", "安全", "方案", "审查", "审计", "风险",
                 "任务", "培训", "规范", "条款", "脚手架", "模板", "临边",
-                "洞口", "吊篮", "屋面", "天气", "事故", "知识图谱",
+                "洞口", "吊篮", "屋面", "事故", "知识图谱",
             )
             web_markers = ("联网", "网页", "网上", "全网", "新闻", "最新消息")
-            question_markers = ("？", "?", "什么", "为什么", "如何", "怎么", "谁", "哪", "是否")
+            freshness_markers = ("最新", "实时", "今年", "本周", "近期", "价格", "榜单")
             if _contains_any(text, web_markers) or (
-                _contains_any(text, question_markers) and not _contains_any(text, project_terms)
+                _contains_any(text, freshness_markers)
+                and not _contains_any(text, project_terms)
             ):
                 selected = ["web_agent"]
             else:
-                selected = ["coordinator"]
-        return {"agent_names": list(dict.fromkeys(selected))[:2]}
+                selected = ["general_agent"]
+        return {
+            "agent_names": list(dict.fromkeys(selected))[:2],
+            "routing_mode": "deterministic_fallback",
+        }
 
     def _build_context(self, state: UnifiedAgentState) -> dict[str, Any]:
         return {
@@ -384,6 +463,7 @@ class UnifiedAgentOrchestrator:
             "tools": [item["tool"] for item in state["tool_results"]],
             "context_packet_count": len(state.get("context_packets", [])),
             "results": [item["result"] for item in state["tool_results"]],
+            "routing_mode": state.get("routing_mode", "deterministic_fallback"),
         }
         return {"answer": answer, "metadata": metadata}
 

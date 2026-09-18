@@ -93,3 +93,67 @@ def test_account_mode_requires_login_when_auth_is_enabled(test_settings):
         assert health["auth_enforced"] is True
         assert client.get("/health/live").json() == {"status": "ok"}
         assert client.get("/health/ready").json() == {"status": "ok"}
+
+
+def test_weather_question_uses_weather_tool_instead_of_dynamic_risk(test_settings):
+    app = create_app(test_settings)
+
+    class FakeWeather:
+        provider_name = "test-weather"
+
+        def get_forecast(self, work_time):
+            return {
+                "status": "ok",
+                "source": "测试天气",
+                "project_name": "XX综合医院扩建项目",
+                "summary": f"{work_time}项目位置预报，晴，平均温度约26℃，最大风速约8 km/h。",
+                "forecast_window": work_time,
+                "temperature_c": 26,
+                "max_wind_speed_kmh": 8,
+                "precipitation": 0,
+                "sky_conditions": ["CLEAR_DAY"],
+                "alerts": [],
+                "observed_at": "2026-09-19T08:00:00+08:00",
+            }
+
+    with TestClient(app) as client:
+        app.state.weather_provider = FakeWeather()
+        response = client.post(
+            "/api/v1/agent/messages", json={"message": "今天天气怎么样？"}
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["agent_name"] == "weather_agent"
+        assert body["metadata"]["tools"] == ["weather.forecast"]
+        assert body["metadata"]["routing_mode"] == "deterministic_fallback"
+        assert "26℃" in body["answer"]
+        assert "动态评估" not in body["answer"]
+
+
+def test_model_planner_choice_is_used_before_keyword_fallback(test_settings):
+    app = create_app(test_settings)
+
+    class FakePlanner:
+        def plan(self, **_):
+            return ["general_agent"]
+
+    class FakeAssistantModel:
+        def answer_general(self, *, question, context_packets, project_name):
+            assert question == "请用一句话介绍你自己"
+            assert project_name == "XX综合医院扩建项目"
+            return {"status": "ok", "answer": "我是可以按意图调用项目工具的智能助手。"}
+
+    with TestClient(app) as client:
+        app.state.agent_orchestrator.planner = FakePlanner()
+        app.state.assistant_model_service = FakeAssistantModel()
+        response = client.post(
+            "/api/v1/agent/messages", json={"message": "请用一句话介绍你自己"}
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["agent_name"] == "general_agent"
+        assert body["metadata"]["tools"] == ["assistant.answer"]
+        assert body["metadata"]["routing_mode"] == "model"
+        assert "按意图调用项目工具" in body["answer"]

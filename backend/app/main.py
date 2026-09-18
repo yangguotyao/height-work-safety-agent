@@ -20,8 +20,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
+from .api.auth import COOKIE_NAME
+from .api.auth import router as auth_router
 from .api.dynamic_risk import router as dynamic_risk_router
-from .api.auth import COOKIE_NAME, router as auth_router
 from .api.hazard_inspection import router as hazard_inspection_router
 from .api.model_call_monitor import router as model_call_monitor_router
 from .api.platform import router as platform_router
@@ -34,9 +35,9 @@ from .graph.audit_graph import AuditGraph
 from .mcp_server import build_mcp_server
 from .platform.agents import UnifiedAgentOrchestrator
 from .platform.auth import require_roles
-from .platform.runtime import RuntimeProxy, reset_runtime, set_runtime
 from .platform.context import ContextBuilder, MemoryManager
 from .platform.repository import PlatformRepository
+from .platform.runtime import RuntimeProxy, reset_runtime, set_runtime
 from .platform.tools import build_tool_registry
 from .platform.workspaces import ProjectWorkspaceManager
 from .repositories import Repository
@@ -52,6 +53,7 @@ from .schemas import (
     SceneListOut,
 )
 from .services.accident_knowledge import AccidentKnowledgeRepository
+from .services.assistant_model import AssistantModelService
 from .services.document_service import DocumentService
 from .services.dynamic_risk import DynamicRiskService
 from .services.hazard_inspection import HazardInspectionService
@@ -70,6 +72,7 @@ from .services.weather_provider import build_weather_provider
 from .services.web_search import BochaWebSearchService
 from .services.worker_assistant import WorkerAssistantService
 from .services.worker_repository import WorkerAssistantRepository
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
@@ -94,11 +97,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         accident_repository = AccidentKnowledgeRepository(
             workspace_settings.resolved_accident_graph_path
         )
+        weather_provider = build_weather_provider(workspace_settings)
         risk_cards = RiskCardService(
             repository,
             standard_rag,
             accident_repository,
-            build_weather_provider(workspace_settings),
+            weather_provider,
         )
         project_knowledge = ProjectKnowledgeService(
             database,
@@ -145,6 +149,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "task_chain_service": task_chain,
             "safety_log_service": safety_log,
             "web_search_service": BochaWebSearchService(workspace_settings),
+            "weather_provider": weather_provider,
         }
 
     def get_workspace_runtime(project_id: str) -> dict:
@@ -194,6 +199,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.base_settings = app_settings
             app.state.auth_repository = auth_repository
             app.state.platform_repository = auth_repository
+            app.state.assistant_model_service = AssistantModelService(app_settings)
             app.state.workspace_runtimes = workspace_runtimes
             app.state.get_workspace_runtime = get_workspace_runtime
             default_runtime = get_workspace_runtime("default-project")
@@ -212,6 +218,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     char_budget=app_settings.agent_context_char_budget,
                 ),
                 MemoryManager(auth_repository),
+                app.state.assistant_model_service,
             )
             yield
 

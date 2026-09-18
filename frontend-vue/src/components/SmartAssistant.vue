@@ -8,7 +8,7 @@ type AssistantMessage = {
   role: "user" | "assistant";
   text: string;
   agentLabel?: string;
-  sources?: Array<{ title: string; url: string; siteName?: string }>;
+  sources?: Array<{ index: number; title: string; url: string; siteName?: string }>;
   target?: { path: string; label: string } | null;
 };
 
@@ -20,7 +20,10 @@ type AgentResponse = {
   metadata?: {
     agents?: string[];
     tools?: string[];
-    results?: Array<{ items?: Array<Record<string, unknown>> }>;
+    results?: Array<{
+      items?: Array<Record<string, unknown>>;
+      used_source_indexes?: number[];
+    }>;
   };
 };
 
@@ -89,11 +92,18 @@ function routeFor(result: AgentResponse) {
 
 function sourcesFor(result: AgentResponse) {
   if (!(result.metadata?.tools || []).includes("web.search")) return [];
-  const items = result.metadata?.results?.flatMap((item) => item.items || []) || [];
-  return items
-    .filter((item) => typeof item.url === "string" && typeof item.title === "string")
+  const sources = result.metadata?.results?.flatMap((searchResult) => {
+    const items = searchResult.items || [];
+    const used = new Set(searchResult.used_source_indexes || []);
+    return items
+      .map((item, index) => ({ item, index: index + 1 }))
+      .filter(({ index }) => !used.size || used.has(index));
+  }) || [];
+  return sources
+    .filter(({ item }) => typeof item.url === "string" && typeof item.title === "string")
     .slice(0, 5)
-    .map((item) => ({
+    .map(({ item, index }) => ({
+      index,
       title: String(item.title),
       url: String(item.url),
       siteName: typeof item.site_name === "string" ? item.site_name : undefined,
@@ -268,7 +278,7 @@ async function go(target: { path: string }) {
             <div v-if="message.sources?.length" class="assistant-sources">
               <b>联网来源</b>
               <a v-for="source in message.sources" :key="source.url" :href="source.url" target="_blank" rel="noreferrer">
-                {{ source.title }}<small>{{ source.siteName || sourceHost(source.url) }}</small>
+                [{{ source.index }}] {{ source.title }}<small>{{ source.siteName || sourceHost(source.url) }}</small>
               </a>
             </div>
             <div v-if="message.role === 'assistant'" class="message-actions">
