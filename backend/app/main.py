@@ -216,7 +216,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             yield
 
     app = FastAPI(
-        title="高处作业安全审查与预警智能体 API",
+        title="高处作业全过程风险管控智能体 API",
         version="1.0.0",
         description="高处作业安全辅助平台；风险结果不替代法定审查和责任人员决策。",
         lifespan=lifespan,

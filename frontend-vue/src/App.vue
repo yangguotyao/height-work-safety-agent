@@ -92,7 +92,7 @@ async function confirmResetPassword() {
   <AuthView v-else-if="!auth.user" @authenticated="authenticated" />
 
   <main v-else-if="auth.needsProject || !projects.active" class="onboarding-page">
-    <div class="onboarding-brand"><span>安</span><b>高处作业安全审查与预警智能体</b></div>
+    <div class="onboarding-brand"><span>安</span><b>高处作业全过程风险管控智能体</b></div>
     <section class="onboarding-dialog"><p class="eyebrow">CREATE YOUR FIRST PROJECT</p><h1>创建首个项目</h1><p>账号已登录。创建项目后，方案、巡检、整改和日志都将保存在独立空间中。</p>
       <form @submit.prevent="createProject"><label>项目名称<input v-model="newProjectName" class="input" maxlength="80" placeholder="例如：武汉中心医院扩建项目"></label><label>所在城市<input v-model="newProjectCity" class="input" maxlength="60" placeholder="例如：武汉市"></label><label>项目地址概述（可选）<input v-model="newProjectAddress" class="input" maxlength="160" placeholder="例如：江岸区建设大道附近"></label><p v-if="formError" class="form-error">{{ formError }}</p><button class="btn btn-primary" :disabled="saving">{{ saving ? '正在创建项目…' : '创建并进入项目' }}</button></form>
       <button class="onboarding-logout" @click="logout">退出当前账号</button>
@@ -101,13 +101,13 @@ async function confirmResetPassword() {
 
   <div v-else class="app-shell">
     <aside class="sidebar" :class="{ open: mobileOpen }">
-      <div class="brand"><span class="brand-mark">安</span><div><strong>高处作业安全审查与预警智能体</strong><small>HEIGHTWORK SAFETY AGENT</small></div></div>
+      <div class="brand"><span class="brand-mark">安</span><div><strong>高处作业全过程风险管控智能体</strong><small>HEIGHT WORK RISK CONTROL AGENT</small></div></div>
       <button class="project-chip" @click="projectDialog = true"><span class="pulse-dot"></span><div><small>当前项目</small><b>{{ projects.active?.name }}</b></div><span class="project-chevron">⌄</span></button>
       <nav><RouterLink v-for="item in navigation" :key="item.to" :to="item.to" @click="mobileOpen = false"><span class="nav-code">{{ item.code }}</span><span>{{ item.label }}</span></RouterLink></nav>
       <SmartAssistant />
       <div class="sidebar-bottom account-area"><button class="workspace-card" @click="accountMenu = !accountMenu"><span class="workspace-icon">{{ auth.user.display_name.slice(0,1) }}</span><span><b>{{ auth.user.display_name }}</b><small>{{ projects.active?.name }}</small></span><em>⌃</em></button><div v-if="accountMenu" class="account-menu"><button @click="projectDialog = true; accountMenu = false">项目管理</button><button v-if="auth.user.system_role === 'admin'" @click="openAccounts">账号管理</button><button @click="logout">切换账号</button><button class="logout" @click="logout">退出登录</button></div></div>
     </aside>
-    <main class="main-area"><header class="mobile-header"><button class="menu-button" @click="mobileOpen = !mobileOpen">☰</button><strong>高处作业安全审查与预警智能体</strong><span class="status-pill">在线</span></header><div v-if="projects.error" class="workspace-error">{{ projects.error }}</div><RouterView /></main>
+    <main class="main-area"><header class="mobile-header"><button class="menu-button" @click="mobileOpen = !mobileOpen">☰</button><strong>高处作业全过程风险管控智能体</strong><span class="status-pill">在线</span></header><div v-if="projects.error" class="workspace-error">{{ projects.error }}</div><RouterView /></main>
     <button v-if="mobileOpen" class="scrim" aria-label="关闭菜单" @click="mobileOpen = false"></button>
   </div>
 

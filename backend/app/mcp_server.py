@@ -12,7 +12,7 @@ def build_mcp_server(settings: Settings) -> MCPServer:
     """Expose bounded, read-only project tools through the official MCP SDK."""
     server = MCPServer(
         name="height-work-safety",
-        title="高处作业安全审查与预警智能体 MCP",
+        title="高处作业全过程风险管控智能体 MCP",
         description="高处作业项目规范、知识和动态风险的只读工具面。",
         instructions=(
             "这些工具提供安全辅助证据，不代表开工许可、停工指令或法定审查结论。"

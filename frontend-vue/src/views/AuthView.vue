@@ -42,7 +42,7 @@ function switchMode(next: 'login' | 'register') {
 
 <template>
   <main class="auth-page">
-    <section class="auth-visual" role="img" aria-label="高处作业安全审查与预警智能体施工安全主题图"></section>
+    <section class="auth-visual" role="img" aria-label="高处作业全过程风险管控智能体施工安全主题图"></section>
     <section class="auth-panel">
       <div class="auth-card">
         <header><span class="mobile-logo">安</span><p>欢迎使用</p><h2>{{ mode === 'login' ? '登录安全工作台' : '创建系统账号' }}</h2><small v-if="mode === 'register'">注册完成后，登录并创建首个项目</small></header>

@@ -232,7 +232,7 @@ def restore_all(archive_path: Path, *, confirmed: bool = False) -> dict[str, Any
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="高处作业安全审查与预警智能体维护工具")
+    parser = argparse.ArgumentParser(description="高处作业全过程风险管控智能体维护工具")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     backup = subparsers.add_parser("backup", help="仅备份默认 SQLite（兼容旧命令）")
